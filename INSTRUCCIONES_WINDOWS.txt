@@ -1,0 +1,192 @@
+═══════════════════════════════════════════════════════════════
+  🪟 CREAR EJECUTABLE PARA WINDOWS - CellSite
+═══════════════════════════════════════════════════════════════
+
+
+═══════════════════════════════════════════════════════════════
+  ⚙️ REQUISITOS (Solo para crear el ejecutable)
+═══════════════════════════════════════════════════════════════
+
+En el PC Windows donde vas a hacer el build, necesitas:
+
+  ✓ Python 3.8 o superior
+    Descarga: https://www.python.org/downloads/
+    
+    ⚠️ IMPORTANTE: Durante la instalación marca:
+       ☑ "Add Python to PATH"
+
+
+═══════════════════════════════════════════════════════════════
+  📋 PASO A PASO
+═══════════════════════════════════════════════════════════════
+
+1️⃣  COPIAR EL PROYECTO A WINDOWS
+
+   Opción A - USB:
+   - Copia toda la carpeta CellSite/ a la USB
+   - Conecta la USB al PC Windows
+   - Copia la carpeta a tu Escritorio o Documentos
+
+   Opción B - Nube:
+   - Sube la carpeta a Google Drive/Dropbox
+   - Descárgala en Windows
+
+
+2️⃣  ABRIR SÍMBOLO DEL SISTEMA (CMD)
+
+   - Presiona: Windows + R
+   - Escribe: cmd
+   - Presiona Enter
+
+
+3️⃣  NAVEGAR A LA CARPETA
+
+   cd C:\Users\TuUsuario\Desktop\CellSite
+
+
+4️⃣  EJECUTAR EL BUILD
+
+   build.bat
+
+   ⏱️ El proceso tarda 3-5 minutos
+   
+   Verás:
+   - Creando entorno virtual...
+   - Instalando dependencias...
+   - Empaquetando aplicación...
+   - ¡BUILD COMPLETO!
+
+
+5️⃣  ENCONTRAR TU EJECUTABLE
+
+   La aplicación estará en:
+   
+   C:\Users\TuUsuario\Desktop\CellSite\dist\CellSite\
+   
+   Contenido:
+   ├── CellSite.exe      ← 🚀 EL EJECUTABLE
+   ├── _internal\        ← Librerías
+   ├── data\             ← Tus datos
+   ├── LEEME.txt
+   └── más archivos...
+
+
+═══════════════════════════════════════════════════════════════
+  📱 USAR LA APLICACIÓN
+═══════════════════════════════════════════════════════════════
+
+OPCIÓN 1 - Ejecutar desde USB:
+
+  1. Copia la carpeta dist\CellSite\ completa a la USB
+  2. Abre la carpeta desde la USB
+  3. Doble clic en CellSite.exe
+  4. ¡Listo!
+
+
+OPCIÓN 2 - Instalar en el PC:
+
+  1. Copia la carpeta dist\CellSite\ al PC
+     (Ejemplo: C:\Programas\CellSite\)
+  2. Doble clic en CellSite.exe
+  3. (Opcional) Crear acceso directo en Escritorio
+
+
+PRIMER USO:
+  👤 Usuario: admin
+  🔑 Contraseña: admin
+
+
+═══════════════════════════════════════════════════════════════
+  🐛 SOLUCIÓN DE PROBLEMAS
+═══════════════════════════════════════════════════════════════
+
+❌ "Python no se reconoce..."
+   → Reinstala Python y marca "Add Python to PATH"
+   → O descarga Python desde Microsoft Store
+
+
+❌ "pip no se reconoce..."
+   → Abre CMD como Administrador
+   → Ejecuta: python -m ensurepip --upgrade
+
+
+❌ Al ejecutar CellSite.exe sale error de DLL:
+   → Instala: Microsoft Visual C++ Redistributable
+   https://aka.ms/vs/17/release/vc_redist.x64.exe
+
+
+❌ Windows Defender bloquea el ejecutable:
+   → Es normal con ejecutables nuevos
+   → Click en "Más información" → "Ejecutar de todas formas"
+   → O agrega excepción en Windows Defender
+
+
+❌ No se abre el navegador automáticamente:
+   → Abre manualmente: http://127.0.0.1:5000
+
+
+═══════════════════════════════════════════════════════════════
+  📂 UBICACIÓN DE DATOS
+═══════════════════════════════════════════════════════════════
+
+Tus ventas, clientes y pagos se guardan en:
+
+  CellSite\data\app.db
+
+RESPALDAR:
+  - Copia el archivo app.db a otra ubicación
+  - O copia toda la carpeta CellSite\
+
+RESTAURAR:
+  - Reemplaza app.db con tu respaldo
+
+
+═══════════════════════════════════════════════════════════════
+  💾 TAMAÑO APROXIMADO
+═══════════════════════════════════════════════════════════════
+
+La carpeta CellSite\ completa ocupa:
+  📦 ~50-70 MB
+
+Asegúrate de tener espacio en tu USB.
+
+
+═══════════════════════════════════════════════════════════════
+  🔒 SEGURIDAD
+═══════════════════════════════════════════════════════════════
+
+✓ La aplicación NO necesita internet
+✓ Todos los datos son locales (NO se suben a ningún servidor)
+✓ Solo tú tienes acceso a tus datos
+✓ Haz respaldos periódicos del archivo app.db
+
+
+═══════════════════════════════════════════════════════════════
+  ℹ️ NOTAS ADICIONALES
+═══════════════════════════════════════════════════════════════
+
+• El archivo CellSite.exe es PORTABLE
+  No necesita instalación, funciona directo desde donde esté
+
+• Puedes renombrar la carpeta CellSite\ si quieres
+  (Pero NO renombres archivos dentro de ella)
+
+• Para usar en múltiples PCs:
+  Crea el ejecutable en Windows una vez
+  Luego copia dist\CellSite\ a todos los PCs que quieras
+
+• Si actualizas el código:
+  Vuelve a ejecutar build.bat para regenerar el ejecutable
+
+
+═══════════════════════════════════════════════════════════════
+  📞 RECORDATORIO - Formato de moneda
+═══════════════════════════════════════════════════════════════
+
+💰 Usa PESOS COLOMBIANOS (COP)
+  - Escribe: 500000, 1000000, 250000
+  - NO uses: puntos, comas, ni decimales
+  - Se mostrará como: COP 500.000
+
+
+═══════════════════════════════════════════════════════════════

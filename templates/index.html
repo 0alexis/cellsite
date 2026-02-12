@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Dashboard</h1>
+  <p class="muted">Bienvenido, {{ session.get('user') }}. Selecciona una opción para continuar.</p>
+  
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-top:1.5rem">
+    <div class="card" style="padding:1.5rem;text-align:center;border:2px solid #2563eb">
+      <div style="font-size:2.5rem;margin-bottom:.5rem">📱</div>
+      <h3>Registrar venta</h3>
+      <p class="muted">Vende un teléfono a un cliente.</p>
+      <a class="btn btn-primary" href="{{ url_for('new_sale') }}">Nueva venta</a>
+    </div>
+    <div class="card" style="padding:1.5rem;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.5rem">👥</div>
+      <h3>Clientes</h3>
+      <p class="muted">Gestiona clientes y sus datos.</p>
+      <a class="btn btn-primary" href="{{ url_for('clients') }}">Ir a Clientes</a>
+    </div>
+    <div class="card" style="padding:1.5rem;text-align:center">
+      <div style="font-size:2rem;margin-bottom:.5rem">🏷️</div>
+      <h3>Caja</h3>
+      <p class="muted">Resumen diario de ventas.</p>
+      <a class="btn btn-primary" href="{{ url_for('sales_dashboard') }}">Abrir Caja</a>
+    </div>
+  </div>
+{% endblock %}

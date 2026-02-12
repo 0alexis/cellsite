@@ -1,0 +1,65 @@
+═══════════════════════════════════════════════════════════════
+  📂 UBICACIÓN DE TUS DATOS - CellSite
+═══════════════════════════════════════════════════════════════
+
+¿Dónde están guardados mis clientes, ventas y pagos?
+────────────────────────────────────────────────────────────────
+
+Todos tus datos se guardan en un archivo llamado:  app.db
+
+📍 Ubicación del archivo:
+
+   - Si ejecutas desde la carpeta del proyecto:
+     /home/ubutu/Escritorio/CellSite/data/app.db
+
+   - Si ejecutas el .exe empaquetado:
+     En la misma carpeta donde está el ejecutable, dentro de:
+     data/app.db
+
+
+═══════════════════════════════════════════════════════════════
+  💾 CÓMO RESPALDAR TUS DATOS
+═══════════════════════════════════════════════════════════════
+
+1. Localiza el archivo "app.db" en la carpeta data/
+2. Copia el archivo app.db a una ubicación segura (USB, nube, etc.)
+3. ¡Listo! Ese archivo contiene TODA tu información
+
+Para restaurar:
+- Reemplaza el archivo app.db actual con tu respaldo
+
+
+═══════════════════════════════════════════════════════════════
+  🔍 CÓMO VER EL CONTENIDO DEL ARCHIVO
+═══════════════════════════════════════════════════════════════
+
+El archivo app.db es una base de datos SQLite. Puedes abrirlo con:
+
+• DB Browser for SQLite (gratuito)
+  https://sqlitebrowser.org/
+
+• Desde la app misma:
+  - Exporta a Excel desde la sección "Caja"
+  - Genera PDF desde cualquier venta
+
+
+═══════════════════════════════════════════════════════════════
+  ⚠️ IMPORTANTE
+═══════════════════════════════════════════════════════════════
+
+- NO borres la carpeta "data/" ni el archivo "app.db"
+- SIEMPRE haz respaldos periódicos
+- Si desinstalas la app, guarda primero el archivo app.db
+
+
+═══════════════════════════════════════════════════════════════
+  💰 FORMATO DE MONEDA
+═══════════════════════════════════════════════════════════════
+
+La app usa PESOS COLOMBIANOS (COP):
+- Se ingresan sin decimales: 500000, 1000000
+- Se muestran con separadores: COP 1.000.000
+- No uses puntos ni comas al escribir, solo números
+
+
+═══════════════════════════════════════════════════════════════

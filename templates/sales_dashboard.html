@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
+    <h2 style="margin:0">Caja — 
+      {% if is_today %}
+        Hoy {{ selected_date.strftime('%d/%m/%Y') }}
+      {% else %}
+        {{ selected_date.strftime('%d/%m/%Y') }}
+      {% endif %}
+    </h2>
+    <a href="{{ url_for('export_excel') }}" class="btn btn-primary" style="font-size:.95rem">📊 Descargar Excel</a>
+  </div>
+
+  {# Selector de fecha y navegación #}
+  <div class="card" style="margin-bottom:1.5rem;background:#f8fafc">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <a href="{{ url_for('sales_dashboard', date=prev_day.strftime('%Y-%m-%d')) }}" class="btn btn-outline" style="font-size:.9rem;padding:.5rem .75rem">
+          ← Día anterior
+        </a>
+        <input type="date" id="date-picker" value="{{ selected_date.strftime('%Y-%m-%d') }}" 
+               style="padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.95rem"
+               onchange="window.location.href='{{ url_for('sales_dashboard') }}?date=' + this.value">
+        <a href="{{ url_for('sales_dashboard', date=next_day.strftime('%Y-%m-%d')) }}" class="btn btn-outline" style="font-size:.9rem;padding:.5rem .75rem">
+          Día siguiente →
+        </a>
+      </div>
+      
+      {% if not is_today %}
+      <a href="{{ url_for('sales_dashboard') }}" class="btn btn-primary" style="font-size:.9rem;padding:.5rem .75rem">
+        🏠 Volver a Hoy
+      </a>
+      {% else %}
+      <span style="background:#d1fae5;color:#059669;padding:.5rem .75rem;border-radius:6px;font-size:.85rem;font-weight:600">
+        ✓ Estás viendo HOY
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem">
+    <div class="card" style="padding:1.2rem">
+      <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Teléfonos vendidos</div>
+      <div style="font-size:2.5rem;font-weight:700;color:#2563eb">{{ phones_sold_today }}</div>
+    </div>
+    <div class="card" style="padding:1.2rem">
+      <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Total vendido</div>
+      <div style="font-size:2rem;font-weight:700;color:#16a34a">COP {{ '{:,.0f}'.format(total_sales_today|int) }}</div>
+    </div>
+    <div class="card" style="padding:1.2rem">
+      <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Ingresos reales (pagos)</div>
+      <div style="font-size:2rem;font-weight:700;color:#059669">COP {{ '{:,.0f}'.format(actual_income|int) }}</div>
+      <div class="muted" style="font-size:.75rem;margin-top:.25rem">Incluye abonos del día</div>
+    </div>
+    <a href="{{ url_for('clients') }}" style="text-decoration:none;color:inherit">
+      <div class="card" style="padding:1.2rem;background:#fff7ed;border:2px solid #fb923c">
+        <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">💰 Deuda Total Global</div>
+        <div style="font-size:2rem;font-weight:700;color:#dc2626">COP {{ '{:,.0f}'.format(total_debt_all|int) }}</div>
+        <div class="muted" style="font-size:.75rem;margin-top:.25rem">{{ debtors|length }} persona{% if debtors|length != 1 %}s{% endif %}</div>
+      </div>
+    </a>
+  </div>
+
+  {# Dashboard de pagos por método #}
+  <div class="card" style="margin-bottom:1.5rem">
+    <h3>💳 Ingresos por método — {{ selected_date.strftime('%d/%m/%Y') }}</h3>
+    <p class="muted" style="font-size:.85rem;margin-bottom:1rem">
+      Detalle de todos los pagos recibidos en este día, organizados por método de pago
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem;margin-bottom:1rem">
+      <div class="card" style="background:#f0fdf4;padding:1rem;border:2px solid #22c55e">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+          <div class="muted" style="font-weight:600">💵 Efectivo</div>
+          <div style="font-size:1.3rem;font-weight:700;color:#16a34a">COP {{ '{:,.0f}'.format(cash_income|int) }}</div>
+        </div>
+        {% if cash_payments %}
+        <div style="font-size:.8rem;color:#6b7280">
+          <strong>{{ cash_payments|length }}</strong> pago{% if cash_payments|length != 1 %}s{% endif %} en efectivo:
+          <div style="max-height:120px;overflow-y:auto;margin-top:.5rem">
+            {% for p in cash_payments %}
+            <div style="padding:.25rem;border-bottom:1px solid #e5e7eb">
+              <strong>{{ p.sale.client.name }}</strong> — COP {{ '{:,.0f}'.format(p.amount|int) }}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% else %}
+        <div class="muted" style="font-size:.8rem">Sin pagos en efectivo</div>
+        {% endif %}
+      </div>
+      
+      <div class="card" style="background:#eff6ff;padding:1rem;border:2px solid #3b82f6">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+          <div class="muted" style="font-weight:600">🏦 Transferencias</div>
+          <div style="font-size:1.3rem;font-weight:700;color:#2563eb">COP {{ '{:,.0f}'.format(transfer_income|int) }}</div>
+        </div>
+        {% if transfer_payments %}
+        <div style="font-size:.8rem;color:#6b7280">
+          <strong>{{ transfer_payments|length }}</strong> transferencia{% if transfer_payments|length != 1 %}s{% endif %}:
+          <div style="max-height:120px;overflow-y:auto;margin-top:.5rem">
+            {% for p in transfer_payments %}
+            <div style="padding:.25rem;border-bottom:1px solid #e5e7eb">
+              <strong>{{ p.sale.client.name }}</strong> — COP {{ '{:,.0f}'.format(p.amount|int) }}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% else %}
+        <div class="muted" style="font-size:.8rem">Sin transferencias</div>
+        {% endif %}
+      </div>
+      
+      <div class="card" style="background:#fef3c7;padding:1rem;border:2px solid #f59e0b">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+          <div class="muted" style="font-weight:600">📝 Crédito</div>
+          <div style="font-size:1.3rem;font-weight:700;color:#f59e0b">COP {{ '{:,.0f}'.format(credit_income|int) }}</div>
+        </div>
+        {% if credit_payments %}
+        <div style="font-size:.8rem;color:#6b7280">
+          <strong>{{ credit_payments|length }}</strong> pago{% if credit_payments|length != 1 %}s{% endif %}:
+          <div style="max-height:120px;overflow-y:auto;margin-top:.5rem">
+            {% for p in credit_payments %}
+            <div style="padding:.25rem;border-bottom:1px solid #e5e7eb">
+              <strong>{{ p.sale.client.name }}</strong> — COP {{ '{:,.0f}'.format(p.amount|int) }}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% else %}
+        <div class="muted" style="font-size:.8rem">Sin pagos a crédito</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem">
+    <h3>Estado de caja (ventas del día) — {{ selected_date.strftime('%d/%m/%Y') }}</h3>
+    <p class="muted" style="font-size:.85rem;margin-bottom:1rem">
+      Distribución de las ventas creadas en este día por método de pago
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
+      <div class="card" style="background:#f0fdf4;padding:1rem;border:1px solid #bbf7d0">
+        <div class="muted">Efectivo</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#16a34a">COP {{ '{:,.0f}'.format(cash_total|int) }}</div>
+      </div>
+      <div class="card" style="background:#eff6ff;padding:1rem;border:1px solid #bfdbfe">
+        <div class="muted">Transferencias</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#2563eb">COP {{ '{:,.0f}'.format(transfer_total|int) }}</div>
+      </div>
+      <div class="card" style="background:#fff5f5;padding:1rem;border:1px solid #fed7d7">
+        <div class="muted">Crédito</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#dc2626">COP {{ '{:,.0f}'.format(credit_total|int) }}</div>
+      </div>
+    </div>
+  </div>
+
+  {# Ventas del día seleccionado #}
+  {% if sales_selected %}
+  <div class="card" style="margin-bottom:1.5rem">
+    <h3>📱 Ventas realizadas — {{ selected_date.strftime('%d/%m/%Y') }}</h3>
+    <table class="table">
+      <thead><tr><th>ID</th><th>Cliente</th><th>Dispositivos</th><th>Precio Total</th><th>Estado</th><th>Acción</th></tr></thead>
+      <tbody>
+      {% for sale in sales_selected %}
+        <tr>
+          <td>#{{ sale.id }}</td>
+          <td><strong>{{ sale.client.name }}</strong></td>
+          <td>
+            {% if sale.products %}
+              {% set paid_count = sale.products|selectattr('paid', 'equalto', true)|list|length %}
+              <div style="font-size:.85rem">{{ sale.products|length }} dispositivo{% if sale.products|length > 1 %}s{% endif %}</div>
+              {% if paid_count > 0 %}
+              <div class="muted" style="font-size:.75rem">{{ paid_count }} pagado{% if paid_count > 1 %}s{% endif %}</div>
+              {% endif %}
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td><strong style="color:#16a34a">COP {{ '{:,.0f}'.format(sale.sale_price|int) }}</strong></td>
+          <td>
+            <span style="padding:.25rem .5rem;background:{% if sale.status == 'pagada' %}#ecfdf5{% elif sale.status == 'saldo a favor' %}#d1fae5{% elif sale.status == 'devuelto' %}#ffeded{% else %}#eff6ff{% endif %};border-radius:4px;font-size:.85rem">
+              {{ sale.status }}
+            </span>
+          </td>
+          <td><a class="btn btn-outline" href="{{ url_for('view_sale', sale_id=sale.id) }}" style="font-size:.85rem;padding:.3rem .6rem">Ver »</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card" style="margin-bottom:1.5rem;text-align:center;padding:2rem;background:#f8fafc">
+    <div style="font-size:3rem;margin-bottom:.5rem;opacity:.3">📭</div>
+    <p class="muted">No hay ventas registradas en {{ selected_date.strftime('%d/%m/%Y') }}</p>
+  </div>
+  {% endif %}
+
+  {% if overdue %}
+  <div class="card" style="background:#fff5f5;border:1px solid #fed7d7;margin-bottom:1.5rem">
+    <h3 style="color:#c53030">⚠️ Advertencia: Deudas vencidas (> 3 días)</h3>
+    <p class="muted">Los siguientes clientes tienen deudas que exceden 3 días sin ser pagadas:</p>
+    <table class="table">
+      <thead><tr><th>Cliente</th><th>Teléfono</th><th>Saldo</th><th>Desde hace</th><th>Acción</th></tr></thead>
+      <tbody>
+      {% for sale in overdue %}
+        <tr>
+          <td><strong>{{ sale.client.name }}</strong></td>
+          <td class="muted">
+            {% if sale.products %}
+              {% for p in sale.products %}
+                <div style="font-size:.85rem">{{ p.model or p.imei }}</div>
+              {% endfor %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td><span style="color:#dc2626;font-weight:600">COP {{ '{:,.0f}'.format(sale.balance|int) }}</span></td>
+          <td class="muted">{{ ((now - sale.date).days if sale.date else 0) }} días</td>
+          <td><a class="btn btn-outline" href="{{ url_for('view_sale', sale_id=sale.id) }}">Ver</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:1rem">
+      <h3 style="margin:0">📋 Deudores actuales ({{ debtors|length }})</h3>
+      <span class="muted" style="font-size:.85rem">Total: COP {{ '{:,.0f}'.format(total_debt_all|int) }}</span>
+    </div>
+    
+    {# Filtro de búsqueda #}
+    <div style="background:#f8fafc;padding:1rem;border-radius:6px;margin-bottom:1rem">
+      <form method="get" action="{{ url_for('sales_dashboard') }}" style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+        {% if selected_date and selected_date != today %}
+        <input type="hidden" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+        {% endif %}
+        <div style="flex:1;min-width:250px">
+          <label style="font-size:.85rem;font-weight:600;color:#374151;display:block;margin-bottom:.25rem">
+            🔍 Buscar deudor
+          </label>
+          <input type="text" name="search" value="{{ search_query or '' }}" 
+                 placeholder="Nombre, email, teléfono, IMEI o Nº factura..." 
+                 style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.95rem">
+        </div>
+        <button type="submit" class="btn btn-primary" style="padding:.5rem 1rem">Buscar</button>
+        {% if search_query %}
+        <a href="{{ url_for('sales_dashboard', date=selected_date.strftime('%Y-%m-%d') if selected_date != today else '') }}" class="btn btn-outline" style="padding:.5rem 1rem">Limpiar</a>
+        {% endif %}
+      </form>
+      {% if search_query %}
+      <div style="margin-top:.75rem;padding:.5rem;background:#fef3c7;border-radius:4px;font-size:.85rem">
+        <strong>Filtrando por:</strong> "{{ search_query }}" — {{ debtors|length }} resultado{% if debtors|length != 1 %}s{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    
+    {% if debtors %}
+    <p class="muted" style="margin-bottom:1rem">Las siguientes personas deben dinero. La lista está ordenada por las deudas más antiguas (más tiempo sin pagar).</p>
+    <table class="table">
+      <thead><tr><th>Cliente</th><th>Contacto</th><th>Dispositivos / Factura</th><th style="text-align:center">Días ⏱️</th><th>Desde</th><th>Saldo</th><th>Acción</th></tr></thead>
+      <tbody>
+      {% for sale in debtors %}
+        <tr {% if sale in overdue %}style="background:#ffe8e8;border-left:4px solid #dc2626"{% endif %}>
+          <td><strong>{{ sale.client.name }}</strong></td>
+          <td class="muted" style="font-size:.85rem">
+            {% if sale.client.phone %}
+              <div>📞 {{ sale.client.phone }}</div>
+            {% endif %}
+            {% if sale.client.email %}
+              <div>✉️ {{ sale.client.email }}</div>
+            {% endif %}
+            {% if not sale.client.phone and not sale.client.email %}
+              —
+            {% endif %}
+          </td>
+          <td class="muted" style="font-size:.85rem">
+            {% if sale.products %}
+              {% for p in sale.products %}
+                <div>
+                  {% if p.paid %}<span style="color:#16a34a">✓</span>{% else %}<span style="color:#cbd5e1">○</span>{% endif %}
+                  {{ p.model or p.imei }}
+                  {% if p.invoice_number %}<span class="muted" style="font-size:.75rem">(Fact: {{ p.invoice_number }})</span>{% endif %}
+                </div>
+              {% endfor %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td style="text-align:center;font-weight:700;{% if sale in overdue %}color:#dc2626;font-size:1.1rem{% elif ((now - sale.date).days if sale.date else 0) >= 1 %}color:#ea580c{% endif %}">{{ ((now - sale.date).days if sale.date else '—') }}</td>
+          <td class="muted">{{ sale.date.strftime('%d/%m/%Y') if sale.date else 'N/A' }}</td>
+          <td><span style="font-weight:700;{% if sale in overdue %}color:#dc2626{% elif ((now - sale.date).days if sale.date else 0) >= 1 %}color:#ea580c{% endif %}">COP {{ '{:,.0f}'.format(sale.balance|int) }}</span></td>
+          <td><a class="btn btn-outline" href="{{ url_for('view_sale', sale_id=sale.id) }}">Ver</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div style="margin-top:1rem;padding:0.75rem;background:#f9fafb;border-left:3px solid #2563eb;border-radius:4px">
+      <div style="font-size:0.85rem;color:#6b7280">
+        <strong>Leyenda:</strong> Rojo = Más de 3 días sin pagar | Naranja = Entre 1 y 3 días | Normal = Menos de 1 día
+      </div>
+    </div>
+    {% else %}
+      {% if search_query %}
+      <div style="text-align:center;padding:2rem">
+        <div style="font-size:3rem;margin-bottom:.5rem;opacity:.3">🔍</div>
+        <p class="muted">No se encontraron deudores con el término: <strong>"{{ search_query }}"</strong></p>
+        <a href="{{ url_for('sales_dashboard', date=selected_date.strftime('%Y-%m-%d') if selected_date != today else '') }}" class="btn btn-outline" style="margin-top:1rem">Ver todos los deudores</a>
+      </div>
+      {% else %}
+      <p class="muted" style="text-align:center;padding:1rem">✅ ¡Excelente! No hay personas que deban en este momento.</p>
+      {% endif %}
+    {% endif %}
+  </div>
+{% endblock %}

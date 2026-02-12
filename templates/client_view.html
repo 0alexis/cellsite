@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <h2>{{ client.name }}</h2>
+        <p class="muted">Tel: {{ client.phone or '—' }} · Email: {{ client.email or '—' }}</p>
+        <p>{{ client.address or '' }}</p>
+        {% if client.notes %}<p class="muted" style="font-size:.85rem"><strong>Notas:</strong> {{ client.notes }}</p>{% endif %}
+      </div>
+      <div style="display:flex;gap:.5rem;flex-direction:column">
+        <a class="btn btn-primary" href="{{ url_for('new_sale', client_id=client.id) }}">+ Registrar venta</a>
+        <a class="btn btn-outline" href="{{ url_for('clients') }}">← Volver</a>
+      </div>
+    </div>
+  </div>
+
+  {% if client.sales %}
+  {# Calcular saldo total #}
+  {% set total_debt = namespace(value=0) %}
+  {% set total_favor = namespace(value=0) %}
+  {% set total_sales_amount = namespace(value=0) %}
+  {% for s in client.sales %}
+    {% if s.status != 'devuelto' %}
+      {% set total_sales_amount.value = total_sales_amount.value + s.sale_price %}
+      {% if s.balance > 0 %}
+        {% set total_debt.value = total_debt.value + s.balance %}
+      {% elif s.balance < 0 %}
+        {% set total_favor.value = total_favor.value + (s.balance * -1) %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+  {% set net_balance = total_debt.value - total_favor.value %}
+  {% set total_paid = total_sales_amount.value - total_debt.value %}
+
+  <div class="card" style="background:{% if net_balance > 0 %}#fff7ed{% elif net_balance < 0 %}#d1fae5{% else %}#f0fdf4{% endif %};border:2px solid {% if net_balance > 0 %}#fb923c{% elif net_balance < 0 %}#059669{% else %}#4ade80{% endif %}">
+    <h3 style="margin:0 0 1rem 0;color:#1e293b">Resumen Financiero</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.5rem">
+      <div>
+        <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Total en ventas:</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#2563eb">COP {{ '{:,.0f}'.format(total_sales_amount.value|int) }}</div>
+      </div>
+      <div>
+        <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Total pagado:</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#16a34a">COP {{ '{:,.0f}'.format(total_paid|int) }}</div>
+      </div>
+      {% if total_debt.value > 0 %}
+      <div>
+        <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Deuda pendiente:</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#dc2626">COP {{ '{:,.0f}'.format(total_debt.value|int) }}</div>
+      </div>
+      {% endif %}
+      {% if total_favor.value > 0 %}
+      <div>
+        <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Saldo a favor:</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#059669">COP {{ '{:,.0f}'.format(total_favor.value|int) }}</div>
+      </div>
+      {% endif %}
+      <div>
+        <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Balance neto:</div>
+        <div style="font-size:1.5rem;font-weight:700;color:{% if net_balance > 0 %}#dc2626{% elif net_balance < 0 %}#059669{% else %}#16a34a{% endif %}">
+          {% if net_balance > 0 %}
+            Debe: COP {{ '{:,.0f}'.format(net_balance|int) }}
+          {% elif net_balance < 0 %}
+            A favor: COP {{ '{:,.0f}'.format((net_balance * -1)|int) }}
+          {% else %}
+            COP 0
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if total_debt.value > 0 %}
+  <div class="card" style="background:#f0f9ff;border:2px solid #3b82f6">
+    <h3 style="margin:0 0 .5rem 0;color:#1e40af">⚡ Abono Automático</h3>
+    <p style="margin:0 0 1rem 0;font-size:.9rem;color:#1e293b">
+      El abono se distribuirá automáticamente a las ventas más antiguas con saldo pendiente (resaltadas en amarillo).
+    </p>
+    
+    {# Mostrar orden de prioridad #}
+    {% set pending_sales_list = [] %}
+    {% for s in client.sales %}
+      {% if s.balance > 0 and s.status != 'devuelto' %}
+        {% set _ = pending_sales_list.append(s) %}
+      {% endif %}
+    {% endfor %}
+    
+    {% if pending_sales_list %}
+    <div style="background:#eff6ff;padding:.75rem;border-radius:6px;margin-bottom:1rem;border-left:3px solid #2563eb">
+      <strong style="font-size:.9rem">📋 Orden de pago automático:</strong>
+      <ol style="margin:.5rem 0 0 1.2rem;padding:0;font-size:.85rem">
+        {% for s in pending_sales_list[:3] %}
+        <li style="margin:.25rem 0">
+          Venta #{{ s.id }} ({{ s.date.strftime('%d/%m/%Y') if s.date else '—' }}) - 
+          <strong style="color:#dc2626">COP {{ '{:,.0f}'.format(s.balance|int) }}</strong>
+        </li>
+        {% endfor %}
+        {% if pending_sales_list|length > 3 %}
+        <li style="margin:.25rem 0;color:#64748b">... y {{ pending_sales_list|length - 3 }} venta(s) más</li>
+        {% endif %}
+      </ol>
+    </div>
+    {% endif %}
+    
+    <form method="post" action="{{ url_for('auto_payment') }}">>
+      <input type="hidden" name="client_id" value="{{ client.id }}">
+      <div class="form-row">
+        <label>Monto a abonar (COP) *<br>
+          <input name="amount" required type="text" class="currency-input" placeholder="Ej: {{ '{:,.0f}'.format(total_debt.value|int) }}" style="font-size:1.1rem">
+        </label>
+        <label>Método de pago<br>
+          <select name="method" style="font-size:1rem">
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="credito">Credito</option>
+          </select>
+        </label>
+      </div>
+      <label>Nota (opcional)<br>
+        <input name="note" placeholder="Observaciones del pago...">
+      </label>
+      <div style="margin-top:.75rem;display:flex;gap:.5rem;align-items:center">
+        <button class="btn btn-primary" type="submit">Aplicar abono automático</button>
+        <span class="muted" style="font-size:.85rem">O <a href="#sales-table" style="text-decoration:underline">abona directo a una venta específica</a></span>
+      </div>
+      <div style="margin-top:.75rem;padding:.75rem;background:#fef3c7;border-radius:6px;font-size:.85rem">
+        <strong>💡 Cómo funciona:</strong> El pago se aplicará primero a las ventas más antiguas con deuda. 
+        Si el monto excede la deuda total (COP {{ '{:,.0f}'.format(total_debt.value|int) }}), el sobrante quedará como saldo a favor.
+      </div>
+    </form>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <div class="card" id="sales-table">
+    <h3>Ventas registradas</h3>
+    {% if client.sales %}
+    {% if total_debt.value > 0 %}
+    <div style="background:#fef3c7;padding:.75rem;border-radius:6px;margin-bottom:1rem;font-size:.85rem">
+      <strong>📌 Orden de prioridad:</strong> Las ventas con fondo amarillo son las más antiguas con deuda pendiente.
+      El abono automático las pagará primero.
+    </div>
+    {% endif %}
+    <table class="table">
+      <thead><tr><th>ID</th><th>Fecha</th><th>Dispositivos</th><th>Precio Total</th><th>Saldo</th><th>Estado</th><th>Acción</th></tr></thead>
+      <tbody>
+      {# Crear lista ordenada de ventas con deuda para resaltar las primeras #}
+      {% set pending_sales = [] %}
+      {% for s in client.sales %}
+        {% if s.balance > 0 and s.status != 'devuelto' %}
+          {% set _ = pending_sales.append(s.id) %}
+        {% endif %}
+      {% endfor %}
+      {% for s in client.sales %}
+        <tr{% if s.id in pending_sales[:3] %} style="background:#fef3c7"{% endif %}>
+          <td>#{{ s.id }}</td>
+          <td>
+            <div style="font-size:.85rem">{{ s.date.strftime('%d/%m/%Y') if s.date else '—' }}</div>
+            <div class="muted" style="font-size:.75rem">{{ s.date.strftime('%H:%M') if s.date else '' }}</div>
+          </td>
+          <td>
+            {% if s.products %}
+              {% set paid_count = s.products|selectattr('paid', 'equalto', true)|list|length %}
+              {% for p in s.products %}
+                <div style="font-size:.85rem;margin:.2rem 0">
+                  {% if p.paid %}<span style="color:#16a34a;font-weight:700">✓</span>{% else %}<span style="color:#cbd5e1">○</span>{% endif %} 
+                  {{ p.model or p.imei }}
+                </div>
+              {% endfor %}
+              <span class="muted" style="font-size:.75rem">
+                ({{ s.products|length }} dispositivo{% if s.products|length > 1 %}s{% endif %}
+                {% if paid_count > 0 %} - <span style="color:#16a34a;font-weight:600">{{ paid_count }} pagado{% if paid_count > 1 %}s{% endif %}</span>{% endif %})
+              </span>
+            {% else %}
+              <span class="muted">Sin productos</span>
+            {% endif %}
+          </td>
+          <td><strong>COP {{ '{:,.0f}'.format(s.sale_price|int) }}</strong></td>
+          <td>
+            {% if s.balance < 0 %}
+              <strong style="color:#059669">A favor: COP {{ '{:,.0f}'.format((s.balance * -1)|int) }}</strong>
+            {% elif s.balance == 0 %}
+              <strong style="color:#16a34a">COP 0</strong>
+            {% else %}
+              <strong style="color:#dc2626">COP {{ '{:,.0f}'.format(s.balance|int) }}</strong>
+            {% endif %}
+          </td>
+          <td><span style="padding:.25rem .5rem;background:{% if s.status == 'pagada' %}#ecfdf5{% elif s.status == 'saldo a favor' %}#d1fae5{% elif s.status == 'devuelto' %}#ffeded{% else %}#eff6ff{% endif %};border-radius:4px;font-size:.85rem">{{ s.status }}</span></td>
+          <td>
+            <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+              <a class="btn btn-outline" href="{{ url_for('view_sale', sale_id=s.id) }}" style="font-size:.85rem;padding:.3rem .5rem">Ver »</a>
+              {% if s.status != 'devuelto' %}
+              <a class="btn btn-primary" href="{{ url_for('view_sale', sale_id=s.id) }}#payment-form" style="font-size:.85rem;padding:.3rem .5rem;background:#2563eb">💳 Abonar</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="background:#f8fafc;border-top:2px solid #cbd5e1;font-weight:700">
+          <td colspan="3" style="text-align:right;padding-right:1rem">TOTAL:</td>
+          <td><strong>COP {{ '{:,.0f}'.format(total_sales_amount.value|int) }}</strong></td>
+          <td>
+            {% if net_balance > 0 %}
+              <strong style="color:#dc2626">Debe: COP {{ '{:,.0f}'.format(net_balance|int) }}</strong>
+            {% elif net_balance < 0 %}
+              <strong style="color:#059669">A favor: COP {{ '{:,.0f}'.format((net_balance * -1)|int) }}</strong>
+            {% else %}
+              <strong style="color:#16a34a">COP 0</strong>
+            {% endif %}
+          </td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <p class="muted">No hay ventas registradas. <a href="{{ url_for('new_sale', client_id=client.id) }}">Registrar la primera »</a></p>
+    {% endif %}
+  </div>
+{% endblock %}

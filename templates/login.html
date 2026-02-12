@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CellSite — Iniciar sesión</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+      
+      .login-container {
+        width: 100%;
+        max-width: 420px;
+        padding: 0 20px;
+      }
+      
+      .login-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        padding: 40px;
+        animation: slideUp 0.5s ease-out;
+        transform: translateZ(0);
+      }
+      
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      
+      .login-header h1 {
+        font-size: 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      
+      .login-header p {
+        color: #6b7280;
+        font-size: 0.9rem;
+      }
+      
+      .form-group {
+        margin-bottom: 16px;
+      }
+      
+      .form-group label {
+        display: block;
+        font-weight: 500;
+        color: #1f2937;
+        margin-bottom: 8px;
+        font-size: 0.95rem;
+      }
+      
+      .form-group input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        background: #f9fafb;
+      }
+      
+      .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+      
+      .submit-btn {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 8px;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      }
+      
+      .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+      }
+      
+      .submit-btn:active {
+        transform: translateY(0);
+      }
+      
+      .divider {
+        margin: 24px 0;
+        border: none;
+        border-top: 1px solid #e5e7eb;
+      }
+      
+      .help-section {
+        background: #f9fafb;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+      }
+      
+      .help-section p {
+        font-size: 0.85rem;
+        color: #4b5563;
+        margin-bottom: 8px;
+      }
+      
+      .help-section p:last-child {
+        margin-bottom: 0;
+      }
+      
+      .help-section code {
+        background: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border-left: 2px solid #667eea;
+        font-family: "Courier New", monospace;
+        font-weight: 600;
+        color: #667eea;
+      }
+      
+      .register-link {
+        text-align: center;
+        font-size: 0.9rem;
+      }
+      
+      .register-link a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.2s ease;
+      }
+      
+      .register-link a:hover {
+        color: #764ba2;
+        text-decoration: underline;
+      }
+      
+      .flashes {
+        list-style: none;
+        margin-bottom: 20px;
+      }
+      
+      .flashes li {
+        padding: 12px 14px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        font-size: 0.95rem;
+        animation: slideDown 0.3s ease-out;
+      }
+      
+      .flashes .flash {
+        color: #dc2626;
+        background: #fee2e2;
+        border-left: 4px solid #dc2626;
+      }
+      
+      .flashes .success {
+        color: #059669;
+        background: #ecfdf5;
+        border-left: 4px solid #059669;
+      }
+      
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-header">
+          <h1>CellSite</h1>
+          <p>Gestión de ventas de celulares</p>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="flashes">
+              {% for category, msg in messages %}
+                <li class="flash {{ category }}">{{ msg }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+        
+        <form method="post">
+          <div class="form-group">
+            <label for="username">Usuario *</label>
+            <input type="text" id="username" name="username" required autofocus>
+          </div>
+          
+          <div class="form-group">
+            <label for="password">Contraseña *</label>
+            <input type="password" id="password" name="password" required>
+          </div>
+          
+          <button type="submit" class="submit-btn">Iniciar sesión</button>
+        </form>
+        
+        <hr class="divider">
+      
+        
+        <div class="register-link">
+          ¿No tienes usuario? <a href="{{ url_for('register') }}">Crear uno aquí</a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

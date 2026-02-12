@@ -1,0 +1,119 @@
+═══════════════════════════════════════════════════════════════
+  🚀 CREAR EJECUTABLE PORTABLE - CellSite
+═══════════════════════════════════════════════════════════════
+
+PASO A PASO para convertir la app en ejecutable portable:
+
+
+═══════════════════════════════════════════════════════════════
+  1️⃣  CREAR EL EJECUTABLE
+═══════════════════════════════════════════════════════════════
+
+Desde la carpeta del proyecto, ejecuta:
+
+    bash build.sh
+
+Esto va a:
+  ✓ Crear el entorno virtual
+  ✓ Instalar todas las dependencias
+  ✓ Empaquetar la aplicación con PyInstaller
+  ✓ Crear la carpeta dist/CellSite/ con todo incluido
+
+⏱️  El proceso tarda 2-5 minutos aproximadamente.
+
+
+═══════════════════════════════════════════════════════════════
+  2️⃣  COPIAR A USB
+═══════════════════════════════════════════════════════════════
+
+Una vez terminado el build:
+
+1. Ve a la carpeta: dist/CellSite/
+   
+2. Copia TODA la carpeta "CellSite" a tu USB
+   
+   Estructura que verás:
+   USB/
+   └── CellSite/
+       ├── CellSite          ← El ejecutable
+       ├── _internal/        ← Librerías necesarias
+       ├── data/             ← Se creará al ejecutar (tus datos)
+       ├── templates/        ← Plantillas HTML
+       ├── static/           ← CSS e imágenes
+       ├── DATOS_UBICACION.txt
+       └── README.md
+
+
+═══════════════════════════════════════════════════════════════
+  3️⃣  USAR EN OTRO PC
+═══════════════════════════════════════════════════════════════
+
+En el otro PC (no necesita Python instalado):
+
+1. Conecta la USB
+2. Abre la carpeta CellSite/
+3. Doble clic en el archivo "CellSite" (el ejecutable)
+4. ¡Listo! Se abrirá el navegador con la aplicación
+
+
+═══════════════════════════════════════════════════════════════
+  📝 NOTAS IMPORTANTES
+═══════════════════════════════════════════════════════════════
+
+✓ PORTABLE: No necesita instalación, funciona directo desde USB
+
+✓ DATOS: Se guardan en la carpeta data/app.db
+  - Si quieres llevar tus datos, copia todo CellSite/
+  - Si quieres empezar desde cero, borra data/app.db
+
+✓ COMPATIBILIDAD:
+  - Linux → Linux ✅
+  - Para Windows necesitas hacer build en Windows
+  - Para Mac necesitas hacer build en Mac
+
+✓ PRIMER USO: Usuario por defecto
+  - Usuario: admin
+  - Contraseña: admin
+
+
+═══════════════════════════════════════════════════════════════
+  🐛 SI ALGO SALE MAL AL HACER BUILD
+═══════════════════════════════════════════════════════════════
+
+Si el build falla:
+
+1. Asegúrate de tener Python 3.8+ instalado:
+   python3 --version
+
+2. Instala las dependencias manualmente:
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   pip install pyinstaller
+
+3. Ejecuta PyInstaller directamente:
+   pyinstaller --onedir --windowed --add-data "templates:templates" \
+   --add-data "static:static" --name CellSite app.py
+
+
+═══════════════════════════════════════════════════════════════
+  💡 TAMAÑO APROXIMADO
+═══════════════════════════════════════════════════════════════
+
+La carpeta CellSite/ completa ocupa aproximadamente:
+  📦 ~50-100 MB (dependiendo de las librerías)
+
+Asegúrate de tener espacio suficiente en tu USB.
+
+
+═══════════════════════════════════════════════════════════════
+  🔒 SEGURIDAD Y RESPALDOS
+═══════════════════════════════════════════════════════════════
+
+⚠️  IMPORTANTE: 
+
+- Haz copias de seguridad del archivo data/app.db regularmente
+- Si formateas la USB, perderás todos los datos
+- Considera hacer respaldos en Google Drive, Dropbox, etc.
+
+
+═══════════════════════════════════════════════════════════════

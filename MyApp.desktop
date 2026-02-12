@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=MiApp Local
+Comment=Iniciar MiApp local (abre navegador)
+Exec=/bin/bash -c '"$(dirname "%k")"/start.sh'
+Terminal=false
+Type=Application
+Icon=applications-internet
+Categories=Utility;

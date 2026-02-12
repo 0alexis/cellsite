@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# Local data
+/data/app.db
+/data/*.backup
+
+# OS
+.DS_Store
+Thumbs.db

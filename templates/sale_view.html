@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <h2>Venta #{{ sale.id }}</h2>
+        <p>Cliente: <a href="{{ url_for('view_client', client_id=sale.client.id) }}"><strong>{{ sale.client.name }}</strong></a></p>
+        <p class="muted">Fecha: {{ sale.date.strftime('%d/%m/%Y %H:%M') if sale.date else 'N/A' }}</p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.5rem">
+        <div style="text-align:right">
+          <div class="muted" style="font-size:.9rem">Estado:</div>
+          <span style="padding:.4rem .6rem;background:{% if sale.status == 'pagada' %}#ecfdf5;color:#16a34a{% elif sale.status == 'saldo a favor' %}#d1fae5;color:#059669{% elif sale.status == 'devuelto' %}#ffeded;color:#dc2626{% else %}#eff6ff;color:#2563eb{% endif %};border-radius:4px;font-weight:600;display:inline-block">{{ sale.status }}</span>
+        </div>
+        <div style="display:flex;gap:.5rem;font-size:.9rem">
+          <button class="btn btn-outline" onclick="window.print()" style="font-size:.9rem;padding:.4rem .6rem">🖨️ Imprimir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Información de los dispositivos ({{ sale.products|length }})</h3>
+    
+    {# Contador de dispositivos pagados #}
+    {% set paid_count = sale.products|selectattr('paid', 'equalto', true)|list|length %}
+    {% if sale.products|length > 1 %}
+    <div style="background:{% if paid_count == sale.products|length %}#f0fdf4{% elif paid_count > 0 %}#fef3c7{% else %}#eff6ff{% endif %};padding:.75rem;border-radius:6px;margin-bottom:1rem;border-left:4px solid {% if paid_count == sale.products|length %}#16a34a{% elif paid_count > 0 %}#f59e0b{% else %}#3b82f6{% endif %}">
+      <strong style="font-size:.9rem">
+        {% if paid_count == sale.products|length %}
+          ✓ Todos los dispositivos están pagados
+        {% elif paid_count > 0 %}
+          ⚡ {{ paid_count }} de {{ sale.products|length }} dispositivos pagados
+        {% else %}
+          📱 {{ sale.products|length }} dispositivos pendientes de pago
+        {% endif %}
+      </strong>
+    </div>
+    {% endif %}
+    
+    {% if sale.products %}
+      {% for product in sale.products %}
+      <div style="{% if not loop.last %}border-bottom:1px solid #e5e7eb;margin-bottom:1rem;padding-bottom:1rem{% endif %};position:relative;{% if product.paid %}background:#f0fdf4;padding:1rem;border-radius:6px;border:2px solid #86efac{% endif %}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+          <h4 style="color:{% if product.paid %}#16a34a{% else %}#2563eb{% endif %};margin:0;font-size:1rem">
+            {% if product.paid %}✓{% endif %} Dispositivo #{{ loop.index }}
+          </h4>
+          {% if product.paid %}
+          <span style="background:#16a34a;color:white;padding:.25rem .5rem;border-radius:4px;font-size:.75rem;font-weight:700">✓ PAGADO</span>
+          {% else %}
+          <span style="background:#fef3c7;color:#92400e;padding:.25rem .5rem;border-radius:4px;font-size:.75rem;font-weight:600">PENDIENTE</span>
+          {% endif %}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:.95rem">
+          <div>
+            <div class="muted">IMEI:</div>
+            <strong>{{ product.imei }}</strong>
+          </div>
+          <div>
+            <div class="muted">Modelo:</div>
+            <strong>{{ product.model or '—' }}</strong>
+          </div>
+          <div>
+            <div class="muted">Color:</div>
+            <strong>{{ product.color or '—' }}</strong>
+          </div>
+          <div>
+            <div class="muted">Nº factura:</div>
+            <strong>{{ product.invoice_number or '—' }}</strong>
+          </div>
+          <div>
+            <div class="muted">Precio individual:</div>
+            <strong style="color:{% if product.paid %}#16a34a{% else %}#2563eb{% endif %}">COP {{ '{:,.0f}'.format(product.price|int) }}</strong>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">No hay dispositivos registrados en esta venta.</p>
+    {% endif %}
+    <hr style="margin:1rem 0;border:none;border-top:2px solid #e5e7eb">
+    <div style="display:flex;gap:1rem">
+      <div>
+        <div class="muted">Precio total de venta:</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#2563eb">COP {{ '{:,.0f}'.format(sale.sale_price|int) }}</div>
+      </div>
+      <div>
+        <div class="muted">{% if sale.balance < 0 %}Saldo a favor del cliente:{% elif sale.balance == 0 %}Saldo:{% else %}Saldo pendiente:{% endif %}</div>
+        <div style="font-size:1.3rem;font-weight:700">
+          {% if sale.balance < 0 %}
+            <span style="color:#059669">COP {{ '{:,.0f}'.format((sale.balance * -1)|int) }}</span>
+          {% elif sale.balance == 0 %}
+            <span style="color:#16a34a">COP 0</span>
+          {% else %}
+            <span style="color:#dc2626">COP {{ '{:,.0f}'.format(sale.balance|int) }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Abonos realizados</h3>
+    {% if sale.payments %}
+    <table class="table">
+      <thead><tr><th>Fecha</th><th>Monto</th><th>Método</th><th>Nota</th></tr></thead>
+      <tbody>
+      {% for p in sale.payments %}
+        <tr>
+          <td class="muted">{{ p.date.strftime('%d/%m/%Y %H:%M') if p.date else 'N/A' }}</td>
+          <td><strong>COP {{ '{:,.0f}'.format(p.amount|int) }}</strong></td>
+          <td>{{ p.method or '—' }}</td>
+          <td class="muted">{{ p.note or '' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">No hay abonos registrados aún.</p>
+    {% endif %}
+
+    {% if sale.status != 'devuelto' %}
+    <h4 id="payment-form" style="margin-top:1rem;margin-bottom:.5rem">💳 Abono Individual a esta Venta</h4>
+    <div style="background:#fef3c7;padding:.75rem;border-radius:6px;margin-bottom:.75rem;border-left:3px solid #f59e0b">
+      <strong>🔍 Abono específico:</strong> Este abono se aplicará únicamente a esta venta.<br>
+      <span class="muted" style="font-size:.85rem">
+        Si prefieres distribuir el abono automáticamente a todas las ventas del cliente, 
+        <a href="{{ url_for('view_client', client_id=sale.client_id) }}" style="text-decoration:underline">ve al perfil del cliente</a>.
+      </span>
+    </div>
+    {% if sale.balance > 0 %}
+    <div style="background:#eff6ff;padding:.75rem;border-radius:6px;margin-bottom:.75rem;border-left:3px solid #2563eb">
+      <strong>Saldo pendiente:</strong> COP {{ '{:,.0f}'.format(sale.balance|int) }}<br>
+      <span class="muted" style="font-size:.85rem">Si el abono es mayor al saldo, se registrará como saldo a favor del cliente.</span>
+    </div>
+    {% elif sale.balance < 0 %}
+    <div style="background:#d1fae5;padding:.75rem;border-radius:6px;margin-bottom:.75rem;border-left:3px solid #059669">
+      <strong>⭐ Cliente tiene saldo a favor:</strong> COP {{ '{:,.0f}'.format((sale.balance * -1)|int) }}<br>
+      <span class="muted" style="font-size:.85rem">Este monto puede usarse para futuras compras.</span>
+    </div>
+    {% else %}
+    <div style="background:#f0fdf4;padding:.75rem;border-radius:6px;margin-bottom:.75rem;border-left:3px solid #16a34a">
+      <strong>✓ Venta completamente pagada</strong><br>
+      <span class="muted" style="font-size:.85rem">Cualquier abono adicional generará saldo a favor del cliente.</span>
+    </div>
+    {% endif %}
+    <form method="post" action="{{ url_for('new_payment') }}">
+      <input type="hidden" name="sale_id" value="{{ sale.id }}">
+      <div class="form-row">
+        <label>Monto a abonar (COP) *<br><input name="amount" required type="text" class="currency-input" placeholder="Ej: 50.000" style="font-size:1.1rem"></label>
+        <label>Método de pago<br>
+          <select name="method">
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="credito">Credito</option>
+          </select>
+        </label>
+      </div>
+      <label>Nota (opcional)<br><input name="note"></label>
+      <div style="margin-top:.5rem;display:flex;gap:.5rem">
+        <button class="btn btn-primary" type="submit">Registrar abono</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if sale.status != 'devuelto' %}
+  <div class="card" style="background:#fff5f5;border:1px solid #fed7d7">
+    <h3 style="color:#c53030">Devolver producto</h3>
+    <p>Si el cliente devuelve el celular sin terminar de pagar, marca la venta como devuelta.</p>
+    <form method="post" action="{{ url_for('process_return', sale_id=sale.id) }}" onsubmit="return confirm('¿Marcar venta como devuelta y registrar reembolso de los pagos realizados?');">
+      <label>Motivo de devolución (opcional)<br><input name="reason" placeholder="E.j: Producto defectuoso, cambio de idea..."></label>
+      <div style="margin-top:.5rem">
+        <button class="btn btn-danger" type="submit">Marcar como devuelto</button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <div class="card" style="background:#ecfdf5;border:1px solid #bbf7d0">
+    <h3 style="color:#16a34a">Producto devuelto</h3>
+    <p>Esta venta ha sido marcada como devuelta.</p>
+    {% if sale.returns %}
+    <p class="muted">Devoluciones registradas:</p>
+    <ul style="margin:.5rem 0">
+      {% for r in sale.returns %}
+      <li class="muted">{{ r.date.strftime('%d/%m/%Y') if r.date else 'N/A' }} — {{ r.reason or '(sin motivo)' }} — Reembolso: COP {{ '{:,.0f}'.format(r.refund_amount|int) }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endif %}
+{% endblock %}

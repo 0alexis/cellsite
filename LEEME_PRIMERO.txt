@@ -1,0 +1,113 @@
+═══════════════════════════════════════════════════════════════
+              CellSite - Sistema de Ventas
+═══════════════════════════════════════════════════════════════
+
+📱 Sistema completo para gestión de ventas de celulares
+   con pagos en cuotas y control de deudores.
+
+
+═══════════════════════════════════════════════════════════════
+  🚀 INICIO RÁPIDO
+═══════════════════════════════════════════════════════════════
+
+🪟 WINDOWS:
+   1. Abre CMD (Símbolo del sistema)
+   2. Navega a esta carpeta: cd C:\ruta\a\CellSite
+   3. Ejecuta: build.bat
+   4. Espera 3-5 minutos
+   5. Tu ejecutable estará en: dist\CellSite\CellSite.exe
+
+🐧 LINUX:
+   1. Abre Terminal
+   2. Navega a esta carpeta: cd /ruta/a/CellSite
+   3. Ejecuta: bash build.sh
+   4. Espera 3-5 minutos
+   5. Tu ejecutable estará en: dist/CellSite/CellSite
+
+
+═══════════════════════════════════════════════════════════════
+  📚 ARCHIVOS DE AYUDA
+═══════════════════════════════════════════════════════════════
+
+📄 INSTRUCCIONES_WINDOWS.txt
+   → Guía completa para crear ejecutable en Windows
+
+📄 INSTRUCCIONES_EJECUTABLE.txt
+   → Información general sobre ejecutables
+
+📄 DATOS_UBICACION.txt
+   → Dónde se guardan tus datos y cómo hacer respaldos
+
+📄 README.md
+   → Documentación técnica completa
+
+
+═══════════════════════════════════════════════════════════════
+  ⚙️ REQUISITOS
+═══════════════════════════════════════════════════════════════
+
+Para CREAR el ejecutable necesitas:
+  • Python 3.8 o superior
+  • Conexión a internet (solo para descargar dependencias)
+
+Para USAR el ejecutable NO necesitas nada:
+  • El .exe funciona solo
+  • No necesita Python instalado
+  • No necesita internet
+
+
+═══════════════════════════════════════════════════════════════
+  💡 CONSEJOS
+═══════════════════════════════════════════════════════════════
+
+✓ Crea el ejecutable en el sistema operativo donde lo usarás:
+  - Windows → build.bat → CellSite.exe
+  - Linux → build.sh → CellSite
+
+✓ Una vez creado, copia toda la carpeta dist\CellSite\
+  a USB o donde quieras usarlo
+
+✓ Haz respaldos periódicos del archivo data\app.db
+
+
+═══════════════════════════════════════════════════════════════
+  👤 PRIMER USO
+═══════════════════════════════════════════════════════════════
+
+Usuario: admin
+Contraseña: admin
+
+(Puedes crear más usuarios desde la aplicación)
+
+
+═══════════════════════════════════════════════════════════════
+  🎯 CARACTERÍSTICAS
+═══════════════════════════════════════════════════════════════
+
+✓ Gestión de clientes
+✓ Registro de ventas de celulares
+✓ Control de pagos en cuotas
+✓ Alertas de deudas vencidas (>3 días)
+✓ Dashboard de caja diaria
+✓ Exportar a Excel
+✓ Generar facturas PDF
+✓ Configuración de empresa con logo
+✓ Formato de pesos colombianos (COP)
+✓ 100% portable - no necesita instalación
+
+
+═══════════════════════════════════════════════════════════════
+  📞 SOPORTE
+═══════════════════════════════════════════════════════════════
+
+¿Problemas al crear el ejecutable?
+  → Lee INSTRUCCIONES_WINDOWS.txt (sección problemas)
+
+¿Dónde están mis datos?
+  → Lee DATOS_UBICACION.txt
+
+¿Cómo usar la aplicación?
+  → Dentro del ejecutable hay un botón de ayuda
+
+
+═══════════════════════════════════════════════════════════════
