@@ -1,0 +1,251 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                  CELLSITE - GUIA USB PORTABLE PARA WINDOWS                      ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+📦 CONTENIDO DE ESTA CARPETA
+═════════════════════════════════════════════════════════════════════════════════
+
+La carpeta CellSite_portable contiene:
+
+  📁 CellSite.exe               - Aplicacion ejecutable (autocontenida)
+  📄 start_app.bat              - Script para iniciar la aplicacion
+  📁 data/                      - Carpeta con base de datos (app.db)
+  📁 templates/                 - Plantillas HTML
+  📁 static/                    - Archivos CSS e imagenes
+
+
+🚀 COMO USAR DESDE USB
+═════════════════════════════════════════════════════════════════════════════════
+
+1. COPIAR A USB
+   ➜ Copia toda la carpeta CellSite_portable a tu USB
+   
+2. INICIAR LA APLICACION
+   ➜ Abre el USB en Windows
+   ➜ Haz doble-clic en: start_app.bat
+   
+3. ESPERAR A QUE INICIE
+   ➜ La primera vez tarda 5-10 segundos
+   ➜ Se abrira automáticamente en tu navegador
+   ➜ Si no se abre, entra a: http://127.0.0.1:5001
+
+4. LOGIN
+   ➜ Usuario: admin
+   ➜ Contraseña: admin
+   ➜ Puedes crear mas usuarios desde la app
+
+
+⚡ CARACTERÍSTICAS DEL USB PORTABLE
+═════════════════════════════════════════════════════════════════════════════════
+
+✓ 100% PORTÁTIL
+  - Funciona en cualquier computadora Windows 7+
+  - No necesita instalación
+  - No necesita Python
+  - Funciona desde cualquier carpeta o USB
+
+✓ AUTÓNOMO
+  - No requiere conexión a internet
+  - Toda la aplicación está incluida (~80-100 MB)
+  - Base de datos local en la carpeta data/
+
+✓ DATOS PROTEGIDOS
+  - Todos tus datos se guardan en: data/app.db
+  - Puedes hacer backup copiando data/app.db
+  - Funciona sin conexión
+
+✓ RÁPIDO Y SEGURO
+  - Inicia en 5-10 segundos
+  - Sistema de login con contraseña
+  - Base de datos SQLite completamente funcional
+
+
+⚙️ REQUISITOS MÍNIMOS
+═════════════════════════════════════════════════════════════════════════════════
+
+- Windows 7, 8, 10 o 11
+- 200 MB de espacio libre (100 MB de app + 100 MB para datos)
+- USB de al menos 256 MB (recomendado 1 GB+)
+- Navegador web (Edge, Chrome, Firefox, etc.)
+
+
+📁 ESTRUCTURA DE CARPETAS
+═════════════════════════════════════════════════════════════════════════════════
+
+USB:/
+├── start_app.bat          (ejecuta esto para iniciar)
+├── CellSite.exe           (aplicacion principal)
+├── README.md
+├── requirements.txt
+├── data/
+│   ├── app.db             (base de datos - TUS DATOS!)
+│   └── app.db.backup*     (respaldos automáticos)
+├── templates/             (HTML - no tocar)
+└── static/                (CSS, imagenes - no tocar)
+
+
+📊 TUS DATOS - UBICACIÓN Y RESPALDO
+═════════════════════════════════════════════════════════════════════════════════
+
+DONDE ESTAN TUS DATOS:
+  → USB:/CellSite_portable/data/app.db
+
+COMO HACER BACKUP:
+  1. Abre la carpeta: USB:/CellSite_portable/data/
+  2. Copia el archivo: app.db
+  3. Guardalo en: tu computadora, nube, otro USB, etc.
+
+COMO RESTAURAR DESDE BACKUP:
+  1. Apaga CellSite
+  2. Reemplaza: USB:/CellSite_portable/data/app.db
+  3. Con tu archivo de respaldo
+  4. Reinicia CellSite
+
+
+⚠️ IMPORTANTE - PERMISOS DE LECTURA/ESCRITURA
+═════════════════════════════════════════════════════════════════════════════════
+
+Si obtienes error: "Permission denied" o "Cannot write to database"
+
+SOLUCION EN WINDOWS:
+  1. Clic derecho en la carpeta CellSite_portable
+  2. Propiedades
+  3. Pestaña "Seguridad"
+  4. Clic en tu usuario
+  5. Clic en "Editar..."
+  6. Marca "Control total"
+  7. Aplicar y Aceptar
+
+O si es USB:
+  1. Conecta el USB a la computadora
+  2. Clic derecho en el USB
+  3. Propiedades
+  4. Desmarca "Solo lectura" (si esta marcado)
+  5. Aplicar
+
+
+🔒 SEGURIDAD
+═════════════════════════════════════════════════════════════════════════════════
+
+- Cambiar contraseña por defecto:
+  1. Inicia CellSite
+  2. Ve a Configuración (engranaje)
+  3. Crea un nuevo usuario
+  4. Borra el usuario "admin"
+
+- Proteger datos:
+  • Guarda respaldos regularmente en otra ubicación
+  • Usa carpeta con contraseña del OS si es sensible
+  • Nunca compartas el USB sin hacer respaldo
+
+
+🐛 SOLUCIÓN DE PROBLEMAS
+═════════════════════════════════════════════════════════════════════════════════
+
+PROBLEMA: "Acceso denegado al ejecutar start_app.bat"
+SOLUCIONES:
+  1. Haz clic derecho en start_app.bat → "Run as administrator"
+  2. Si aun falla, edita start_app.bat con Bloc de notas
+  3. Cambia "%SCRIPT_DIR%CellSite.exe" por la ruta completa del USB
+
+PROBLEMA: El navegador no se abre automáticamente
+SOLUCION:
+  1. Abre manualmente: http://127.0.0.1:5001
+  2. Si no carga, espera 10 segundos mas
+  3. Asegurate que la ventana del cmd siga abierta (app en ejecucion)
+
+PROBLEMA: "CellSite.exe no encontrado"
+SOLUCION:
+  1. Verifica que estes en la carpeta correcta (CellSite_portable)
+  2. Haz doble-clic en start_app.bat, NO en CellSite.exe directamente
+  3. Recopia todos los archivos del USB
+
+PROBLEMA: Base de datos corrupta o no carga
+SOLUCION:
+  1. Busca: data/app.db.backup_*
+  2. Renombralo a: app.db
+  3. Reinicia CellSite
+
+
+💡 CONSEJOS Y TRUCOS
+═════════════════════════════════════════════════════════════════════════════════
+
+1. CREAR ACCESO RAPIDO EN ESCRITORIO:
+   - Clic derecho en start_app.bat
+   - "Enviar a" → "Escritorio (crear acceso directo)"
+   - Ahora puedes iniciar desde el escritorio
+
+2. USAR MULTIPLES USB:
+   - Copia la carpeta CellSite_portable a cada USB
+   - Todos tendran la misma app y datos iniciales
+   - Para sincronizar: copia manualmente data/app.db entre USBs
+
+3. ACTUALIZAR LA APLICACION:
+   - Si hay nuevas versiones, construye un nuevo CellSite.exe
+   - Reemplaza solo CellSite.exe, templates/ y static/
+   - Deja la carpeta data/ intacta (tus datos)
+
+4. VELOCIDAD:
+   - En USB 3.0 es significativamente mas rapido que USB 2.0
+   - SSD USB es la opcion ideal
+
+
+📱 USO DESDE TELEFONO/TABLET EN LA MISMA RED
+═════════════════════════════════════════════════════════════════════════════════
+
+Si quieres usar CellSite desde otro dispositivo en la red:
+
+1. Identifica la IP de tu computadora:
+   - Abre cmd.exe
+   - Escribe: ipconfig
+   - Busca "IPv4 Address" (ej: 192.168.1.100)
+
+2. En tu telefono/tablet ingresa:
+   - http://[IP_DE_TU_PC]:5001
+   - Ejemplo: http://192.168.1.100:5001
+
+NOTA: Solo funciona si estan en la MISMA red wifi
+
+
+📞 SOPORTE Y CONTACTO
+═════════════════════════════════════════════════════════════════════════════════
+
+Para reportar problemas o sugerencias:
+- Verifica que la app este actualizada (build_portable.bat)
+- Asegurate de usar Windows 7 o superior
+- Crea un respaldo de data/app.db antes de actualizar
+
+
+✅ CHECKLIST ANTES DE USAR EN PRODUCCION
+═════════════════════════════════════════════════════════════════════════════════
+
+☐ Prueba start_app.bat en tu computadora
+☐ Prueba el login (usuario: admin, contraseña: admin)
+☐ Ingresa algunos datos de prueba
+☐ Crea un respaldo de data/app.db
+☐ Verifica que todos los menus funcionen
+☐ Prueba a generar una factura PDF
+☐ Prueba a descargar datos en Excel
+☐ Desactiva el usuario admin y crea usuarios reales
+☐ Cambia la configuracion de empresa
+☐ Copia la carpeta a USB
+☐ Prueba a iniciar desde el USB en otra computadora
+
+
+🎉 LISTO PARA USAR!
+═════════════════════════════════════════════════════════════════════════════════
+
+Ya tienes CellSite portátil en tu USB. Puedes:
+
+✓ Llevar la app a diferentes locales
+✓ Compartir con colegas (copia completa)
+✓ Hacer respaldos en multiples USBs
+✓ Usar en cualquier Windows sin instalacion
+✓ Actualizar cuando sea necesario
+
+
+Fecha de creacion: 2026-06-22
+Version: 1.0 USB Portable
+Autor: CellSite System
+
+═════════════════════════════════════════════════════════════════════════════════

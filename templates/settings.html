@@ -16,27 +16,65 @@
   
   <form method="post" enctype="multipart/form-data">
     <div class="form-row">
-      <label>Nombre de la empresa *<br>
+      <label>Nombre del local (sale en facturas) *<br>
         <input type="text" name="company_name" value="{{ config.company_name or '' }}" required>
       </label>
     </div>
     
     <div class="form-row">
       <label>Teléfono<br>
-        <input type="text" name="company_phone" value="{{ config.phone or '' }}">
+        <input type="text" name="company_phone" value="{{ config.company_phone or '' }}">
       </label>
     </div>
     
     <div class="form-row">
       <label>Email<br>
-        <input type="email" name="company_email" value="{{ config.email or '' }}">
+        <input type="email" name="company_email" value="{{ config.company_email or '' }}">
       </label>
     </div>
     
     <div class="form-row">
       <label>Dirección<br>
-        <textarea name="company_address" rows="3">{{ config.address or '' }}</textarea>
+        <textarea name="company_address" rows="3">{{ config.company_address or '' }}</textarea>
       </label>
+    </div>
+
+    <div class="form-row">
+      <label>Descripcion para factura (garantia, condiciones, observaciones)<br>
+        <textarea name="invoice_description" rows="4" placeholder="Ej: Garantia de 30 dias por defectos de fabrica. No cubre golpes ni humedad.">{{ config.invoice_description or '' }}</textarea>
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>Formato editable de factura (usa variables entre llaves)<br>
+        <textarea name="invoice_template" rows="8" placeholder="Ej:\nFactura #{venta_id}\nCliente: {cliente}\nDocumento: {cliente_id_nit}\nEquipo: {tipo} {modelo}\nIMEI 1: {imei}\nIMEI 2: {imei2}\nPrecio: {precio}\nEstado: {estado}">{{ config.invoice_template or '' }}</textarea>
+      </label>
+    </div>
+    <p class="muted" style="font-size:.85rem;margin-top:-.4rem">
+      Variables disponibles: {empresa}, {venta_id}, {fecha}, {cliente}, {cliente_id_nit}, {cliente_telefono}, {cliente_email}, {cliente_direccion}, {tipo}, {imei}, {imei2}, {modelo}, {color}, {factura}, {precio}, {estado}.
+    </p>
+
+    <div class="form-row" style="display:block">
+      <label style="display:block;margin-bottom:.45rem">Cuentas para transferencias (configuración individual)</label>
+      <div id="accounts-list" style="display:flex;flex-direction:column;gap:.5rem">
+        {% if payment_accounts_list %}
+          {% for account in payment_accounts_list %}
+          <div class="account-row" style="display:flex;gap:.5rem;align-items:center">
+            <input type="text" name="payment_accounts[]" value="{{ account }}" placeholder="Ej: Bancolombia Ahorros 1234">
+            <button type="button" class="btn btn-outline remove-account" style="white-space:nowrap">Eliminar</button>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="account-row" style="display:flex;gap:.5rem;align-items:center">
+            <input type="text" name="payment_accounts[]" placeholder="Ej: Bancolombia Ahorros 1234">
+            <button type="button" class="btn btn-outline remove-account" style="white-space:nowrap">Eliminar</button>
+          </div>
+        {% endif %}
+      </div>
+      <div style="margin-top:.55rem;display:flex;gap:.5rem;flex-wrap:wrap">
+        <button type="button" id="add-account" class="btn btn-primary">+ Agregar cuenta</button>
+      </div>
+      <p class="muted" style="font-size:.82rem;margin:.5rem 0 0 0">Puedes crear todas las cuentas que necesites. Luego aparecerán en pagos como origen/destino.</p>
     </div>
     
     <div class="form-row">
@@ -58,4 +96,62 @@
     </div>
   </form>
 </div>
+
+{% if 'gestionar_usuarios' in user_perms %}
+<div class="card" style="max-width:700px;margin-top:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+  <div>
+    <h3 style="margin:0 0 .25rem 0">👤 Usuarios y roles</h3>
+    <p class="muted" style="margin:0;font-size:.88rem">Crea usuarios, asigna roles y controla accesos al sistema.</p>
+  </div>
+  <a href="{{ url_for('manage_users') }}" class="btn btn-primary">Gestionar usuarios →</a>
+</div>
+{% endif %}
+
+{% if 'ver_auditoria' in user_perms %}
+<div class="card" style="max-width:700px;margin-top:.85rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+  <div>
+    <h3 style="margin:0 0 .25rem 0">📋 Registro de auditoría</h3>
+    <p class="muted" style="margin:0;font-size:.88rem">Consulta todas las acciones realizadas en el sistema con usuario, fecha y detalle.</p>
+  </div>
+  <a href="{{ url_for('audit_log') }}" class="btn btn-outline">Ver auditoría →</a>
+</div>
+{% endif %}
+
+<script>
+  function bindRemoveButtons() {
+    const list = document.getElementById('accounts-list');
+    if (!list) return;
+    list.querySelectorAll('.remove-account').forEach((button) => {
+      button.onclick = function() {
+        const row = this.closest('.account-row');
+        if (!row) return;
+        const allRows = list.querySelectorAll('.account-row');
+        if (allRows.length === 1) {
+          const input = row.querySelector('input[name="payment_accounts[]"]');
+          if (input) input.value = '';
+          return;
+        }
+        row.remove();
+      };
+    });
+  }
+
+  const addBtn = document.getElementById('add-account');
+  const list = document.getElementById('accounts-list');
+  if (addBtn && list) {
+    addBtn.addEventListener('click', function() {
+      const row = document.createElement('div');
+      row.className = 'account-row';
+      row.style.display = 'flex';
+      row.style.gap = '.5rem';
+      row.style.alignItems = 'center';
+      row.innerHTML = '<input type="text" name="payment_accounts[]" placeholder="Ej: Nequi 3001234567"><button type="button" class="btn btn-outline remove-account" style="white-space:nowrap">Eliminar</button>';
+      list.appendChild(row);
+      bindRemoveButtons();
+    });
+  }
+
+  bindRemoveButtons();
+</script>
 {% endblock %}
+{% block extra_cards %}{% endblock %}

@@ -8,13 +8,27 @@ body{
 	margin:0;background:var(--bg);color:#0f172a;font-size:15px;line-height:1.4
 }
 .app-layout{display:flex;min-height:100vh}
-.sidebar{width:220px;background:linear-gradient(180deg,#0f172a,#0b1220);color:#fff;padding:1.25rem;display:flex;flex-direction:column}
+.sidebar{
+	flex:0 0 240px;
+	width:240px;
+	min-width:240px;
+	max-width:240px;
+	height:100vh;
+	position:sticky;
+	top:0;
+	overflow-y:auto;
+	background:linear-gradient(180deg,#0f172a,#0b1220);
+	color:#fff;
+	padding:1.25rem;
+	display:flex;
+	flex-direction:column
+}
 .brand{font-weight:700;font-size:1.1rem;margin-bottom:1rem}
 .nav-link{color:rgba(255,255,255,0.9);display:block;padding:.45rem .5rem;border-radius:6px;text-decoration:none;transition:background .15s}
 .nav-link:hover{background:rgba(255,255,255,0.1)}
 .nav-link:hover{background:rgba(255,255,255,0.04)}
-.content{flex:1;padding:1.5rem}
-.container{max-width:1100px;margin:0 auto}
+.content{flex:1;min-width:0;padding:1.5rem}
+.container{max-width:1280px;margin:0 auto}
 .card{background:var(--card);padding:1rem;border-radius:10px;box-shadow:0 6px 18px rgba(2,6,23,0.06);margin-bottom:1rem}
 h1,h2,h3{margin:0 0 .6rem 0}
 .toolbar{display:flex;gap:.5rem;align-items:center;margin-bottom:1rem}
@@ -38,13 +52,260 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 textarea{min-height:90px}
 .table{width:100%;border-collapse:collapse}
 .table th,.table td{padding:.5rem .6rem;border-bottom:1px solid #eef2f7;text-align:left}
+.table-scroll{width:100%;overflow-x:auto}
 .flashes{list-style:none;padding:0;margin:0 0 1rem 0}
 .flash{padding:.5rem .75rem;border-radius:6px;margin-bottom:.5rem}
 .flash.success{background:#ecfdf5;color:var(--success)}
 .flash.error{background:#ffeded;color:var(--danger)}
 .muted{color:var(--muted)}
 
+.inventory-filters{
+	background:#f8fafc;
+	border:1px solid #e2e8f0;
+	border-radius:10px;
+	padding:.7rem;
+}
+
+.inventory-row td{
+	transition:background .15s ease;
+}
+
+.inventory-row:hover td{
+	background:#f8fbff;
+}
+
+.dashboard-grid{
+	display:grid;
+	grid-template-columns:repeat(2,minmax(420px,1fr));
+	gap:1.15rem;
+	margin-top:1.5rem;
+}
+
+.dashboard-card{
+	padding:1.8rem;
+	text-align:center;
+	min-height:210px;
+	display:flex;
+	flex-direction:column;
+	justify-content:center;
+}
+
+.dashboard-card-inventory{
+	border:2px solid #0ea5e9;
+}
+
+.dashboard-card-sales{
+	border:2px solid #2563eb;
+}
+
+.dashboard-icon{
+	font-size:2.35rem;
+	margin-bottom:.55rem;
+}
+
+.move-cell{
+	min-width:185px;
+	vertical-align:top;
+}
+
+.move-form{
+	display:grid;
+	grid-template-columns:1fr;
+	gap:.35rem;
+	min-width:170px;
+	max-width:200px;
+}
+
+.move-control{
+	width:100%;
+	min-width:0;
+	font-size:.8rem;
+	padding:.35rem .45rem;
+}
+
+.move-form .btn{
+	justify-content:center;
+	padding:.35rem .5rem;
+}
+
+.modal-open{
+	overflow:hidden;
+}
+
+.transfer-modal{
+	position:fixed;
+	inset:0;
+	display:none;
+	align-items:center;
+	justify-content:center;
+	padding:1rem;
+	background:rgba(15,23,42,.46);
+	backdrop-filter:blur(2px);
+	z-index:1200;
+}
+
+.transfer-modal.is-open{
+	display:flex;
+}
+
+.transfer-modal-card{
+	width:min(720px,100%);
+	background:linear-gradient(145deg,#ffffff,#f8fbff 48%,#eef6ff);
+	border:1px solid #dbeafe;
+	border-radius:16px;
+	box-shadow:0 22px 44px rgba(15,23,42,.22);
+	padding:1rem 1.05rem;
+	animation:modalIn .18s ease-out;
+}
+
+@keyframes modalIn{
+	from{transform:translateY(8px) scale(.985);opacity:0}
+	to{transform:translateY(0) scale(1);opacity:1}
+}
+
+.transfer-modal-header{
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	gap:.75rem;
+	margin-bottom:.2rem;
+}
+
+.transfer-modal-header h3{
+	margin:0;
+	font-size:1.15rem;
+	color:#0f172a;
+}
+
+.transfer-modal-close{
+	border:1px solid #cbd5e1;
+	background:#fff;
+	color:#334155;
+	border-radius:8px;
+	width:34px;
+	height:34px;
+	font-size:1.25rem;
+	line-height:1;
+	cursor:pointer;
+}
+
+.transfer-modal-close:hover{
+	background:#f1f5f9;
+}
+
+.transfer-modal-subtitle{
+	margin:.35rem 0 .75rem 0;
+	color:#334155;
+	font-weight:600;
+	font-size:.92rem;
+}
+
+.transfer-modal-route{
+	display:grid;
+	grid-template-columns:1fr auto 1fr;
+	align-items:center;
+	gap:.8rem;
+	background:rgba(255,255,255,.78);
+	border:1px solid #dbeafe;
+	border-radius:12px;
+	padding:.75rem;
+	margin-bottom:.8rem;
+}
+
+.transfer-route-label{
+	display:block;
+	font-size:.72rem;
+	letter-spacing:.03em;
+	text-transform:uppercase;
+	color:#64748b;
+	margin-bottom:.15rem;
+}
+
+.transfer-modal-route strong{
+	color:#0f172a;
+	font-size:.93rem;
+	word-break:break-word;
+}
+
+.transfer-route-arrow{
+	font-size:1.25rem;
+	color:#2563eb;
+	font-weight:700;
+}
+
+.transfer-modal-metrics{
+	display:grid;
+	grid-template-columns:repeat(2,minmax(0,1fr));
+	gap:.6rem;
+	margin-bottom:.7rem;
+}
+
+.transfer-metric{
+	border-radius:10px;
+	padding:.55rem .65rem;
+	border:1px solid transparent;
+	display:flex;
+	flex-direction:column;
+	gap:.18rem;
+}
+
+.metric-label{
+	font-size:.75rem;
+	color:#475569;
+}
+
+.metric-value{
+	font-size:1rem;
+	color:#0f172a;
+}
+
+.transfer-metric.tone-info{
+	background:#e0f2fe;
+	border-color:#7dd3fc;
+}
+
+.transfer-metric.tone-success{
+	background:#dcfce7;
+	border-color:#86efac;
+}
+
+.transfer-metric.tone-warning{
+	background:#fff7ed;
+	border-color:#fdba74;
+}
+
+.transfer-metric.tone-neutral{
+	background:#f8fafc;
+	border-color:#cbd5e1;
+}
+
+.transfer-modal-extra{
+	margin:.1rem 0 .8rem 0;
+	font-size:.83rem;
+	line-height:1.38;
+	color:#334155;
+	background:#eff6ff;
+	border:1px dashed #93c5fd;
+	border-radius:10px;
+	padding:.58rem .65rem;
+}
+
+.transfer-modal-actions{
+	display:flex;
+	justify-content:flex-end;
+	gap:.55rem;
+	flex-wrap:wrap;
+}
+
 @media (max-width:800px){
 	.sidebar{display:none}
 	.content{padding:.75rem}
+	.inventory-filters{padding:.6rem}
+	.move-cell{min-width:160px}
+	.move-form{max-width:175px}
+	.dashboard-grid{grid-template-columns:1fr}
+	.transfer-modal-card{padding:.95rem}
+	.transfer-modal-route{grid-template-columns:1fr;gap:.45rem}
+	.transfer-route-arrow{display:none}
+	.transfer-modal-metrics{grid-template-columns:1fr}
 }

@@ -1,0 +1,374 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║           WORKFLOW DE CONSTRUCCION - EJECUTABLE USB PORTABLE                    ║
+║                      Para Desarrolladores                                       ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+🎯 OBJETIVO
+═════════════════════════════════════════════════════════════════════════════════
+
+Crear un ejecutable completamente portátil (CellSite.exe) que:
+  ✓ Funcione en cualquier computadora Windows 7+
+  ✓ No necesite Python instalado
+  ✓ No necesite dependencias externas
+  ✓ Se pueda ejecutar desde USB o carpeta local
+  ✓ Contenga toda la aplicación Flask (100% autocontenido)
+
+
+📋 REQUISITOS PREVIOS
+═════════════════════════════════════════════════════════════════════════════════
+
+PARA CONSTRUIR EL EJECUTABLE:
+  → Windows 7, 8, 10 o 11
+  → Python 3.8 o superior (IMPORTANTE: Instalar con "Add Python to PATH")
+  → Git (opcional, para versionamiento)
+
+ESPACIO EN DISCO:
+  → 500 MB disponibles (para construccion temporal)
+  → 150 MB finales (ejecutable + datos)
+
+
+🔧 PASOS DE CONSTRUCCION (PASO A PASO)
+═════════════════════════════════════════════════════════════════════════════════
+
+PASO 1: PREPARAR EL PROYECTO
+───────────────────────────────────────────────────────────────────────────────
+
+  1. Abre PowerShell o CMD en la carpeta del proyecto
+     (Click derecho en carpeta → "Open PowerShell here")
+
+  2. Verifica que tengas Python:
+     > python --version
+     (Deberia mostrar Python 3.8+)
+
+  3. Verifica que tengas los archivos necesarios:
+     ✓ app.py                          (aplicacion principal)
+     ✓ requirements.txt                (dependencias)
+     ✓ templates/                      (carpeta con HTML)
+     ✓ static/                         (carpeta con CSS/imagenes)
+     ✓ build_portable.bat              (script de construccion)
+
+
+PASO 2: CONSTRUIR EL EJECUTABLE
+───────────────────────────────────────────────────────────────────────────────
+
+  Opcion A - METODO FACIL (Recomendado):
+  ─────────
+    1. Haz doble-clic en: build_portable.bat
+    2. Sigue los mensajes en pantalla
+    3. Espera 1-2 minutos (proceso automatizado)
+
+  Opcion B - METODO MANUAL (Si necesitas control):
+  ────────
+    1. Abre CMD en la carpeta del proyecto
+    2. Ejecuta:
+
+       # Crear entorno virtual
+       python -m venv .venv
+
+       # Activar entorno virtual
+       .venv\Scripts\activate.bat
+
+       # Instalar dependencias
+       pip install -r requirements.txt
+       pip install pyinstaller
+
+       # Construir ejecutable (--onefile hace un solo .exe)
+       pyinstaller ^
+           --onefile ^
+           --windowed ^
+           --name CellSite ^
+           --add-data "templates;templates" ^
+           --add-data "static;static" ^
+           --hidden-import=werkzeug.security ^
+           --hidden-import=flask_sqlalchemy ^
+           app.py
+
+
+PASO 3: VERIFICAR LA CONSTRUCCION
+───────────────────────────────────────────────────────────────────────────────
+
+  Despues de que termine (exitosamente):
+
+  1. Verifica que exista: dist\CellSite_portable\CellSite.exe
+  2. Verifica el tamaño: ~80-100 MB (normal)
+  3. Comprueba que exista: dist\CellSite_portable\data\app.db
+
+
+PASO 4: PROBAR EL EJECUTABLE LOCALMENTE
+───────────────────────────────────────────────────────────────────────────────
+
+  Antes de copiar a USB:
+
+  1. Navega a: dist\CellSite_portable\
+  2. Haz doble-clic en: start_app.bat
+  3. Espera a que se abra el navegador (5-10 segundos)
+  4. Login con: admin / admin
+  5. Prueba las principales funciones:
+     - Crear cliente
+     - Agregar venta
+     - Ver dashboard
+     - Generar PDF
+     - Descargar Excel
+
+
+PASO 5: PREPARAR PARA USB
+───────────────────────────────────────────────────────────────────────────────
+
+  1. Copia la carpeta completa: dist\CellSite_portable\
+  2. A tu USB (o unidad externa)
+  3. Renombralo a algo descriptivo si quieres:
+     Ejemplo: "CellSite_v1.0"
+
+  4. Verifica que tenga estos archivos/carpetas:
+     ✓ CellSite.exe
+     ✓ start_app.bat
+     ✓ data/
+     ✓ templates/
+     ✓ static/
+     ✓ README.md
+     ✓ INSTRUCCIONES_USB_PORTABLE.txt
+
+
+PASO 6: PRUEBA EN OTRA COMPUTADORA
+───────────────────────────────────────────────────────────────────────────────
+
+  Para verificar que el USB es totalmente portable:
+
+  1. Toma el USB a OTRA computadora (sin Python instalado)
+  2. Conecta el USB
+  3. Abre la carpeta del USB
+  4. Haz doble-clic en: start_app.bat
+  5. Verifica que funcione (debe abrir el navegador)
+
+  Si funciona → ¡USB PORTABLE EXITOSO!
+  Si no funciona → Ver seccion "Troubleshooting"
+
+
+🔄 ACTUALIZACIONES Y MANTENIMIENTO
+═════════════════════════════════════════════════════════════════════════════════
+
+CUANDO ACTUALIZAR EL EJECUTABLE:
+
+  Caso 1: Cambios en app.py (logica/rutas)
+  ────────
+    ✓ Tienes que reconstruir: build_portable.bat
+    ✓ Reemplaza CellSite.exe en el USB
+    ✓ Deja data/ sin cambios (tus datos estan a salvo)
+
+  Caso 2: Cambios en templates/ o static/
+  ────────
+    ✓ Opcion A: Reconstruir todo (build_portable.bat)
+    ✓ Opcion B: Reemplazar templates/ y static/ directamente en USB
+
+  Caso 3: Nueva version de dependencia (requirements.txt)
+  ────────
+    ✓ Reconstruir todo: build_portable.bat
+    ✓ Esto asegura que todas las dependencias esten actualizadas
+
+
+🛠️ OPTIMIZATION Y PERSONALIZACION
+═════════════════════════════════════════════════════════════════════════════════
+
+AGREGAR ICONO PERSONALIZADO:
+
+  1. Prepara una imagen (256x256 pixels, PNG o ICO)
+  2. Convertir a .ico (usar: https://convertio.co/png-ico/)
+  3. Guardar como: ICON_CELLSITE.ico en la carpeta raiz
+  4. Ejecutar: build_portable.bat (usara el icono automaticamente)
+
+
+REDUCIR TAMAÑO DEL EJECUTABLE:
+
+  Para que sea mas pequeno (~50-60 MB en lugar de 80-100 MB):
+
+  1. Edita build_portable.bat
+  2. Agrega estas flags a pyinstaller:
+     --exclude-module=tk ^
+     --exclude-module=tcl ^
+     --exclude-module=unittest ^
+
+  NOTA: Esto hace el ejecutable mas lento en iniciar
+
+
+HACER MAS RAPIDO EL INICIO:
+
+  Para que inicie en 2-3 segundos en lugar de 5-10:
+
+  1. Usa SSD en lugar de USB mecanico
+  2. Reduce el tamaño (vea seccion anterior)
+  3. Cierra otras aplicaciones que usen CPU
+
+
+📊 ESTRUCTURA DEL PROYECTO FINAL EN USB
+═════════════════════════════════════════════════════════════════════════════════
+
+USB:/CellSite_portable/
+├── CellSite.exe                    ← EJECUTABLE PRINCIPAL (no tocar)
+├── start_app.bat                   ← INICIAR DESDE AQUI
+├── requirements.txt                 (para referencia)
+├── README.md                        (documentacion)
+├── INSTRUCCIONES_USB_PORTABLE.txt  (para usuarios finales)
+│
+├── data/                            ← DATOS DEL USUARIO
+│   ├── app.db                      (base de datos - MUY IMPORTANTE)
+│   └── app.db.backup*              (respaldos automaticos)
+│
+├── templates/                       (incluidos en CellSite.exe)
+│   ├── index.html
+│   ├── login.html
+│   ├── client_form.html
+│   └── ...
+│
+└── static/                          (incluidos en CellSite.exe)
+    ├── style.css
+    └── ...
+
+NOTA: Los archivos en templates/ y static/ estan INCLUIDOS en CellSite.exe
+      Por eso no necesita separarlos para que funcione
+
+
+🐛 TROUBLESHOOTING (SOLUCION DE PROBLEMAS)
+═════════════════════════════════════════════════════════════════════════════════
+
+PROBLEMA: "python: command not found"
+CAUSA: Python no esta en PATH
+SOLUCION:
+  1. Desinstala Python
+  2. Reinstala desde https://www.python.org/downloads/
+  3. IMPORTANTE: Marca "Add Python to PATH" durante instalacion
+  4. Reinicia PowerShell/CMD
+  5. Intenta de nuevo
+
+─────────────────────────────────────────────────────────────────────────────
+
+PROBLEMA: "No such file or directory: templates"
+CAUSA: Falta la carpeta templates/ o static/
+SOLUCION:
+  1. Verifica que estes en la carpeta correcta (donde esta app.py)
+  2. Verifica que existan: templates/ y static/
+  3. Si no existen, restora desde respaldo o copia los archivos
+
+─────────────────────────────────────────────────────────────────────────────
+
+PROBLEMA: "PyInstaller not found"
+CAUSA: No se instalo PyInstaller
+SOLUCION:
+  .venv\Scripts\activate.bat
+  pip install pyinstaller
+
+─────────────────────────────────────────────────────────────────────────────
+
+PROBLEMA: "Fatal error in launcher"
+CAUSA: Ruta muy larga o caracteres especiales
+SOLUCION:
+  1. Mueve la carpeta a una ruta mas corta
+     Ejemplo: C:\CellSite\ en lugar de C:\Users\...\Documentos\...\
+  2. Asegurate que no hay espacios ni caracteres especiales en el path
+
+─────────────────────────────────────────────────────────────────────────────
+
+PROBLEMA: El ejecutable no abre / se cierra inmediatamente
+CAUSA: Falta alguna dependencia o archivo
+SOLUCION:
+  1. Abre CMD en dist\CellSite_portable\
+  2. Ejecuta: CellSite.exe (sin start_app.bat)
+  3. Observa los mensajes de error
+  4. Si ves errores de "module not found", reconstruye
+
+─────────────────────────────────────────────────────────────────────────────
+
+PROBLEMA: "Permission denied" en data/app.db
+CAUSA: USB o carpeta sin permisos de escritura
+SOLUCION:
+  1. Clic derecho en la carpeta CellSite_portable
+  2. Propiedades → Seguridad
+  3. Editar permisos de tu usuario
+  4. Marca "Control total"
+  5. O copia a disco local (no USB)
+
+─────────────────────────────────────────────────────────────────────────────
+
+PROBLEMA: El ejecutable es muy lento en iniciar (>15 segundos)
+CAUSA: Generalmente USB lento o antivirus analizando
+SOLUCION:
+  1. Usa USB 3.0+ en lugar de USB 2.0
+  2. Agrega CellSite.exe a excepciones de antivirus
+  3. Cierra otras aplicaciones
+  4. Intenta en otra computadora
+
+
+📈 DISTRIBUCION Y VERSIONAMIENTO
+═════════════════════════════════════════════════════════════════════════════════
+
+COMO DISTRIBUIR A CLIENTES:
+
+  1. Construccion:
+     build_portable.bat
+
+  2. Prueba:
+     Verifica en 2-3 computadoras diferentes
+
+  3. Empaquetamiento:
+     Copia dist\CellSite_portable\ a USB/carpeta
+
+  4. Documentacion:
+     Incluye INSTRUCCIONES_USB_PORTABLE.txt
+
+  5. Entrega:
+     Email: archivo ZIP
+     Fisico: USB
+
+
+VERSIONAMIENTO:
+
+  Mantén un sistema de versiones:
+  
+  v1.0 - Release inicial
+  v1.1 - Bugfixes
+  v2.0 - Nuevas features
+  
+  Para cada version:
+  1. Actualiza requirements.txt si es necesario
+  2. Prueba exhaustivamente
+  3. Documenta cambios
+  4. Guarda copia del build anterior
+
+
+🎯 VERIFICACION FINAL PRE-DISTRIBUCION
+═════════════════════════════════════════════════════════════════════════════════
+
+Antes de entregar a usuarios finales:
+
+☐ El ejecutable inicia en <10 segundos
+☐ El login funciona (admin/admin)
+☐ Se puede crear cliente
+☐ Se puede registrar venta
+☐ Se puede generar PDF
+☐ Se puede descargar Excel
+☐ Dashboard carga correctamente
+☐ Se puede cambiar configuracion
+☐ Base de datos se guarda en data/app.db
+☐ Funciona en otra computadora sin Python
+☐ Funciona desde USB
+☐ INSTRUCCIONES_USB_PORTABLE.txt es claro
+
+
+✅ LISTA DE VERIFICACION DIARIA (Desarrollador)
+═════════════════════════════════════════════════════════════════════════════════
+
+Antes de hacer commit o release:
+
+□ Prueba el ejecutable compilado localmente
+□ Prueba en otra computadora (sin .venv)
+□ Verifica que data/ sea writable
+□ Comprueba tamaño del .exe (~80-100 MB OK)
+□ Revisa los mensajes de error en build
+□ Actualiza README.md si cambia algo
+□ Documenta cualquier cambio
+
+
+═════════════════════════════════════════════════════════════════════════════════
+Fecha: 2026-06-22
+Autor: Equipo CellSite
+Version: 1.0 - Workflow USB Portable
+═════════════════════════════════════════════════════════════════════════════════

@@ -30,13 +30,43 @@ El ejecutable estará en: `dist/CellSite/CellSite`
 bash start.sh
 ```
 
-## 📋 Archivos de ayuda
+## � USB Portable para Windows (NUEVO!)
+
+**Para crear un ejecutable completamente portable en USB:**
+
+```cmd
+REM Verifica que todo este listo
+verify_build_ready.bat
+
+REM Construye el ejecutable
+build_portable.bat
+
+REM Resultado: dist\CellSite_portable\CellSite.exe
+```
+
+**Características del USB portable:**
+- ✅ Funciona en **cualquier Windows 7+**
+- ✅ **Sin instalación** de Python o dependencias
+- ✅ Funciona en **cualquier computadora**
+- ✅ Funciona desde **USB**, carpeta local o red
+- ✅ Tus datos en `data/app.db` completamente portátil
+
+**Usar desde USB:**
+1. Copia carpeta `dist\CellSite_portable\` a tu USB
+2. Haz doble-clic en `start_app.bat`
+3. Se abre automáticamente en navegador
+
+📖 **Más información:** Lee `INSTRUCCIONES_USB_PORTABLE.txt` y `WORKFLOW_CONSTRUCCION_USB.txt`
+
+## �📋 Archivos de ayuda
 
 - **LEEME_PRIMERO.txt** - Resumen rápido
 - **INSTRUCCIONES_WINDOWS.txt** - Guía completa para Windows con solución de problemas
 - **INSTRUCCIONES_EJECUTABLE.txt** - Información sobre ejecutables
 - **DATOS_UBICACION.txt** - Dónde se guardan los datos y respaldos
-
+- **README_CONSTRUCCION_USB.txt** - Resumen rápido del workflow USB (EMPIEZA AQUI)
+- **INSTRUCCIONES_USB_PORTABLE.txt** - Guía para usar CellSite desde USB
+- **WORKFLOW_CONSTRUCCION_USB.txt** - Procedimiento técnico para construir ejecutable USB
 ## 📂 ¿Dónde se guardan los datos?
 
 La aplicación usa una base de datos SQLite que se guarda en:
@@ -99,7 +129,20 @@ Puedes crear usuarios adicionales desde la aplicación (botón "Crear usuario" e
 - ❌ NO necesita internet
 - ✅ Funciona directo desde USB o cualquier carpeta
 
-## 📦 Distribución
+## �️ Scripts disponibles
+
+**Windows:**
+- `verify_build_ready.bat` - Verifica que todo este listo para construir
+- `build.bat` - Construye ejecutable estándar (modo directorio)
+- `build_portable.bat` - Construye ejecutable USB portable (en un solo archivo)
+- `start.bat` - Ejecuta en modo desarrollo (necesita Python)
+- `start_app.bat` - Ejecuta el aplicativo compilado
+
+**Linux:**
+- `build.sh` - Construye ejecutable para Linux
+- `start.sh` - Ejecuta en modo desarrollo
+
+## �📦 Distribución
 
 Una vez creado el ejecutable, puedes:
 

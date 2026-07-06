@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Registro de auditoría</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">{% for c, m in messages %}<li class="flash {{ c }}">{{ m }}</li>{% endfor %}</ul>
+  {% endif %}
+{% endwith %}
+
+<!-- Filtros -->
+<div class="card" style="max-width:700px;margin-bottom:1rem">
+  <form method="get" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end">
+    <label>Usuario<br>
+      <select name="filter_user" style="min-width:140px">
+        <option value="">Todos</option>
+        {% for u in users_list %}
+        <option value="{{ u }}" {% if filter_user == u %}selected{% endif %}>{{ u }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Acción (texto)<br>
+      <input type="text" name="filter_action" value="{{ filter_action }}" placeholder="Ej: login, pago, venta...">
+    </label>
+    <button class="btn btn-primary" type="submit">Filtrar</button>
+    <a href="{{ url_for('audit_log') }}" class="btn btn-outline">Limpiar</a>
+  </form>
+</div>
+
+<p style="color:#6b7280;font-size:.87rem;margin-bottom:.75rem">{{ total }} registro(s) encontrado(s)</p>
+
+<div class="card" style="overflow-x:auto;padding:0">
+  <table style="width:100%;border-collapse:collapse;font-size:.87rem;min-width:700px">
+    <thead>
+      <tr style="background:#f1f5f9">
+        <th style="padding:.5rem .75rem;text-align:left;white-space:nowrap">Fecha/Hora</th>
+        <th style="padding:.5rem .75rem;text-align:left">Usuario</th>
+        <th style="padding:.5rem .75rem;text-align:left">Rol</th>
+        <th style="padding:.5rem .75rem;text-align:left">Acción</th>
+        <th style="padding:.5rem .75rem;text-align:left">Recurso</th>
+        <th style="padding:.5rem .75rem;text-align:left">Detalle</th>
+        <th style="padding:.5rem .75rem;text-align:left">IP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr style="border-top:1px solid #f1f5f9;{% if loop.index is odd %}background:#fafafa{% endif %}">
+        <td style="padding:.45rem .75rem;white-space:nowrap;color:#6b7280">
+          {{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') if log.timestamp else '—' }}
+        </td>
+        <td style="padding:.45rem .75rem;font-weight:600">{{ log.username or '—' }}</td>
+        <td style="padding:.45rem .75rem">
+          {% if log.role %}
+          <span style="font-size:.78rem;background:#e0e7ff;color:#3730a3;padding:.15rem .5rem;border-radius:999px">{{ log.role }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td style="padding:.45rem .75rem">
+          <span style="font-family:monospace;font-size:.82rem;background:#f1f5f9;padding:.15rem .4rem;border-radius:4px">{{ log.action }}</span>
+        </td>
+        <td style="padding:.45rem .75rem;color:#6b7280;font-size:.83rem">
+          {{ log.resource_type or '' }}{% if log.resource_id %} #{{ log.resource_id }}{% endif %}
+        </td>
+        <td style="padding:.45rem .75rem;color:#374151;max-width:320px;word-break:break-word">{{ log.detail or '' }}</td>
+        <td style="padding:.45rem .75rem;color:#9ca3af;font-size:.8rem">{{ log.ip or '—' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="padding:2rem;text-align:center;color:#9ca3af">Sin registros.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Paginación -->
+{% if pages > 1 %}
+<div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap">
+  {% for p in range(1, pages + 1) %}
+  <a href="?page={{ p }}&filter_user={{ filter_user }}&filter_action={{ filter_action }}"
+     style="padding:.3rem .7rem;border-radius:6px;border:1px solid #d1d5db;text-decoration:none;
+            {% if p == page %}background:#2563eb;color:#fff;border-color:#2563eb{% else %}color:#374151{% endif %}">
+    {{ p }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<p style="margin-top:1.25rem"><a href="{{ url_for('settings') }}" class="btn btn-outline">← Volver a configuración</a></p>
+{% endblock %}

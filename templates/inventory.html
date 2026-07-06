@@ -1,0 +1,653 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+    <h2 style="margin:0">Inventario</h2>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+      <a href="{{ url_for('export_excel') }}" class="btn btn-primary" style="font-size:.9rem">Descargar Excel completo</a>
+      <span style="background:#ecfdf5;color:#166534;padding:.4rem .65rem;border-radius:999px;font-size:.85rem;font-weight:600">
+        Disponibles: {{ available_count }}
+      </span>
+      <span style="background:#f1f5f9;color:#334155;padding:.4rem .65rem;border-radius:999px;font-size:.85rem;font-weight:600">
+        Vendidos: {{ sold_count }}
+      </span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1rem">
+    <form method="get" style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:end">
+      <label style="flex:1;min-width:260px">Buscar por IMEI/Serie, modelo o factura<br>
+        <input type="text" name="search_imei" value="{{ search_imei or '' }}" placeholder="Ej: 351234567890123">
+      </label>
+      <label style="min-width:240px">Contenedor<br>
+        <select name="container_id">
+          <option value="">Todos</option>
+          {% for container in containers %}
+          <option value="{{ container.id }}" {% if selected_container_id and selected_container_id|int == container.id %}selected{% endif %}>{{ container.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button class="btn btn-primary" type="submit">Buscar</button>
+      <a class="btn btn-outline" href="{{ url_for('inventory') }}">Limpiar</a>
+    </form>
+    <p class="muted" style="margin:.6rem 0 0 0;font-size:.85rem">
+      La busqueda incluye disponibles y vendidos/asignados a cliente.
+    </p>
+  </div>
+
+  <div class="card" style="margin-bottom:1rem">
+    <h3 style="margin-bottom:.6rem">Contenedores</h3>
+    <form method="post" action="{{ url_for('new_inventory_container') }}" style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:end">
+      <label style="min-width:220px;flex:1">Nombre contenedor *<br>
+        <input type="text" name="name" required placeholder="Ej: Contenedor A">
+      </label>
+      <label style="min-width:260px;flex:2">Descripción<br>
+        <input type="text" name="description" placeholder="Ej: Estante principal / bodega">
+      </label>
+      <button class="btn btn-outline" type="submit">Crear contenedor</button>
+    </form>
+    <div style="margin-top:.65rem;display:flex;gap:.45rem;flex-wrap:wrap">
+      {% for container in containers %}
+      <span style="background:#e2e8f0;color:#1e293b;padding:.3rem .55rem;border-radius:999px;font-size:.8rem;font-weight:600">{{ container.name }}</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:.8rem">Agregar equipo</h3>
+    <form method="post">
+      <div class="form-row">
+        <label>Tipo de dispositivo *<br>
+          <select name="device_type" id="device_type" required>
+            <option value="">Selecciona...</option>
+            <option value="Telefono">Telefono</option>
+            <option value="Apple Watch">Apple Watch</option>
+            <option value="Mac">Mac</option>
+            <option value="Tablet">Tablet</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </label>
+        <label><span id="imei_label_text">IMEI / Serie *</span><br><input type="text" id="imei" name="imei" required placeholder="Ej: 351234567890123"></label>
+      </div>
+      <div id="imei-check-msg" style="display:none;margin:-.3rem 0 .75rem 0"></div>
+      <div id="reintegration-panel" style="display:none;background:#fff7ed;border:1.5px solid #fb923c;border-radius:8px;padding:1rem;margin-bottom:.75rem">
+        <strong style="color:#c2410c">⚠️ Equipo encontrado como vendido</strong>
+        <p id="reintegration-desc" style="margin:.4rem 0 .75rem 0;font-size:.9rem;color:#0f172a"></p>
+        <form id="reintegration-form" method="post" action="">
+          <div class="form-row">
+            <label>Precio de compra (reintegro) *<br>
+              <input type="text" name="purchase_price" required class="currency-input" placeholder="Ej: 1.800.000">
+            </label>
+            <label>Precio de venta nuevo *<br>
+              <input type="text" name="price" required class="currency-input" placeholder="Ej: 2.500.000">
+            </label>
+          </div>
+          <div class="form-row">
+            <label>Contenedor *<br>
+              <select name="container_id" required>
+                {% for container in containers %}
+                <option value="{{ container.id }}">{{ container.name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>Nota de reintegro<br>
+              <input type="text" name="note" placeholder="Ej: Devuelto por cliente, falla de pantalla...">
+            </label>
+          </div>
+          <button class="btn btn-primary" type="submit" style="background:#ea580c;border-color:#ea580c">Reintegrar al inventario</button>
+          <button class="btn btn-outline" type="button" onclick="closeReintegrationPanel()" style="margin-left:.5rem">Cancelar</button>
+        </form>
+      </div>
+      <div class="form-row" id="imei_secondary_row" style="display:none">
+        <label>IMEI 2 *<br><input type="text" id="imei_secondary" name="imei_secondary" placeholder="Ej: 351234567890124"></label>
+      </div>
+      <div class="form-row">
+        <label>Modelo<br><input type="text" name="model" placeholder="Ej: iPhone 13 Pro"></label>
+        <label>Color<br><input type="text" name="color" placeholder="Ej: Negro"></label>
+        <label>Contenedor *<br>
+          <select name="container_id" required>
+            {% for container in containers %}
+            <option value="{{ container.id }}">{{ container.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+      <div class="form-row">
+        <label>No. factura<br><input type="text" name="invoice_number" placeholder="Ej: FAC-2026-001"></label>
+        {% if 'ver_precio_compra' in user_perms %}
+        <label>Precio de compra (COP) *<br><input type="text" name="purchase_price" required class="currency-input" placeholder="Ej: 2.200.000"></label>
+        {% endif %}
+        <label>Precio de venta (COP) *<br><input type="text" name="price" required class="currency-input" placeholder="Ej: 2.800.000"></label>
+      </div>
+      <button class="btn btn-primary" type="submit">Guardar en inventario</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Equipos registrados</h3>
+    {% if items %}
+    <div class="inventory-filters" style="margin:.3rem 0 .9rem 0;display:flex;gap:.6rem;flex-wrap:wrap;align-items:end">
+      <label style="min-width:220px;flex:1">Bloque / Contenedor<br>
+        <select id="quick-filter-block">
+          <option value="">Todos</option>
+          {% for container in containers %}
+          <option value="{{ container.name|lower }}">{{ container.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label style="min-width:220px;flex:1">Filtrar por IMEI / Serie<br>
+        <input type="text" id="quick-filter-imei" placeholder="Ej: 351234567890123">
+      </label>
+      <label style="min-width:240px;flex:1">Filtrar por nombre / modelo<br>
+        <input type="text" id="quick-filter-name" placeholder="Ej: iPhone, alexis, S11...">
+      </label>
+      <div style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn btn-outline" id="quick-clear-filters">Limpiar filtros</button>
+        <span id="quick-filter-count" class="muted" style="font-size:.85rem"></span>
+      </div>
+    </div>
+
+    <form id="bulk-move-form" method="post" action="{{ url_for('move_inventory_items_bulk') }}" style="margin-bottom:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:end">
+      <label style="min-width:200px">Contenedor destino (masivo) *<br>
+        <select name="target_container_id" required>
+          <option value="">Selecciona...</option>
+          {% for container in containers %}
+          <option value="{{ container.id }}">{{ container.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label style="min-width:240px;flex:1">Nota de traslado<br>
+        <input type="text" name="move_note" placeholder="Ej: Reubicación semanal">
+      </label>
+      <button class="btn btn-primary" type="submit">Traslado masivo seleccionados</button>
+      <span class="muted" style="font-size:.82rem">Solo mueve equipos disponibles.</span>
+      <div id="bulk-move-hidden-inputs"></div>
+    </form>
+
+    <div class="table-scroll">
+    <table class="table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="select-all-available" title="Seleccionar disponibles"></th>
+          <th>ID</th>
+          <th>Tipo</th>
+          <th>Equipo</th>
+          <th>IMEI/Serie</th>
+          <th>IMEI 2</th>
+          <th>Factura</th>
+          <th>Contenedor</th>
+          {% if 'ver_precio_compra' in user_perms %}
+          <th>Precio compra</th>
+          {% endif %}
+          <th>Precio venta</th>
+          <th>Asignado a</th>
+          <th>Estado</th>
+          <th>Mover</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr class="inventory-row"
+            data-block="{{ (item.container.name if item.container else '')|lower }}"
+            data-imei="{{ (item.imei or '')|lower }} {{ (item.imei_secondary or '')|lower }}"
+            data-name="{{ (item.model or '')|lower }} {{ (assigned_clients.get(item.id) or '')|lower }} {{ (item.color or '')|lower }}"
+            data-status="{{ (item.status or '')|lower }}">
+          <td>
+            {% if item.status == 'disponible' %}
+            <input
+              type="checkbox"
+              class="bulk-item-checkbox"
+              data-item-id="{{ item.id }}"
+              data-item-label="#{{ item.id }} {{ item.model or item.imei }}"
+              data-from-container="{{ item.container.name if item.container else 'Sin contenedor' }}">
+            {% endif %}
+          </td>
+          <td>#{{ item.id }}</td>
+          <td>{{ item.device_type }}</td>
+          <td>
+            <strong>{{ item.model or 'Sin modelo' }}</strong>
+            {% if item.color %}
+            <div class="muted" style="font-size:.8rem">{{ item.color }}</div>
+            {% endif %}
+          </td>
+          <td>{{ item.imei }}</td>
+          <td>{{ item.imei_secondary or '—' }}</td>
+          <td>{{ item.invoice_number or '—' }}</td>
+          <td>{{ item.container.name if item.container else '—' }}</td>
+          {% if 'ver_precio_compra' in user_perms %}
+          <td><strong>COP {{ '{:,.0f}'.format(item.purchase_price|int) }}</strong></td>
+          {% endif %}
+          <td><strong>COP {{ '{:,.0f}'.format(item.price|int) }}</strong></td>
+          <td>{{ assigned_clients.get(item.id) or '—' }}</td>
+          <td>
+            {% if item.status == 'disponible' %}
+              <span style="background:#dcfce7;color:#166534;padding:.25rem .55rem;border-radius:999px;font-size:.8rem;font-weight:600">Disponible</span>
+            {% else %}
+              <span style="background:#fee2e2;color:#991b1b;padding:.25rem .55rem;border-radius:999px;font-size:.8rem;font-weight:600">Vendido</span>
+            {% endif %}
+          </td>
+          <td class="move-cell">
+            {% if item.status == 'disponible' %}
+            <form
+              method="post"
+              action="{{ url_for('move_inventory_item', item_id=item.id) }}"
+              class="move-form"
+              data-item-label="#{{ item.id }} {{ item.model or item.imei }}"
+              data-from-container="{{ item.container.name if item.container else 'Sin contenedor' }}">
+              <select name="target_container_id" required class="move-control">
+                <option value="">Destino...</option>
+                {% for container in containers %}
+                {% if not item.container_id or container.id != item.container_id %}
+                <option value="{{ container.id }}">{{ container.name }}</option>
+                {% endif %}
+                {% endfor %}
+              </select>
+              <input type="text" name="move_note" placeholder="Nota" class="move-control">
+              <button class="btn btn-outline move-control" type="submit">Trasladar</button>
+            </form>
+            {% else %}
+              {% set inv = invoice_info.get(item.id) %}
+              {% if inv and inv.paid %}
+              <a class="btn btn-outline move-control" href="{{ url_for('invoice_pdf_product', sale_id=inv.sale_id, product_id=inv.product_id) }}">Descargar factura</a>
+              {% else %}
+              <span class="muted">No aplica</span>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="muted" style="text-align:center;padding:1rem">No hay equipos en inventario todavia.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Movimientos recientes de inventario</h3>
+    {% if recent_movements %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Equipo</th>
+          <th>Acción</th>
+          <th>Origen</th>
+          <th>Destino</th>
+          <th>Usuario</th>
+          <th>Nota</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in recent_movements %}
+        <tr>
+          <td class="muted">{{ m.created_at.strftime('%d/%m/%Y %H:%M') if m.created_at else '—' }}</td>
+          <td>#{{ m.inventory.id if m.inventory else m.inventory_id }} — {{ m.inventory.model if m.inventory and m.inventory.model else (m.inventory.imei if m.inventory else '—') }}</td>
+          <td>{{ m.action }}</td>
+          <td>{{ m.from_container.name if m.from_container else '—' }}</td>
+          <td>{{ m.to_container.name if m.to_container else '—' }}</td>
+          <td>{{ m.username or '—' }}</td>
+          <td class="muted">{{ m.note or '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted" style="text-align:center;padding:1rem">No hay movimientos registrados todavía.</p>
+    {% endif %}
+  </div>
+
+  <div id="transfer-confirm-modal" class="transfer-modal" aria-hidden="true">
+    <div class="transfer-modal-card" role="dialog" aria-modal="true" aria-labelledby="transfer-modal-title">
+      <div class="transfer-modal-header">
+        <h3 id="transfer-modal-title">Confirmar traslado</h3>
+        <button type="button" class="transfer-modal-close" id="transfer-modal-close" aria-label="Cerrar">×</button>
+      </div>
+      <p id="transfer-modal-subtitle" class="transfer-modal-subtitle"></p>
+
+      <div class="transfer-modal-route">
+        <div>
+          <span class="transfer-route-label">Origen</span>
+          <strong id="transfer-modal-from">-</strong>
+        </div>
+        <div class="transfer-route-arrow">→</div>
+        <div>
+          <span class="transfer-route-label">Destino</span>
+          <strong id="transfer-modal-to">-</strong>
+        </div>
+      </div>
+
+      <div id="transfer-modal-metrics" class="transfer-modal-metrics"></div>
+      <p id="transfer-modal-extra" class="transfer-modal-extra"></p>
+
+      <div class="transfer-modal-actions">
+        <button type="button" class="btn btn-outline" id="transfer-modal-cancel">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="transfer-modal-confirm">Confirmar traslado</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function updateIdentityFieldsByType() {
+      const typeSelect = document.getElementById('device_type');
+      const imeiLabelText = document.getElementById('imei_label_text');
+      const imeiInput = document.getElementById('imei');
+      const imeiSecondaryRow = document.getElementById('imei_secondary_row');
+      const imeiSecondaryInput = document.getElementById('imei_secondary');
+      if (!typeSelect || !imeiLabelText || !imeiInput || !imeiSecondaryRow || !imeiSecondaryInput) return;
+
+      const selectedType = (typeSelect.value || '').trim();
+
+      if (selectedType === 'Telefono') {
+        imeiLabelText.textContent = 'IMEI 1 *';
+        imeiInput.placeholder = 'Ej: 351234567890123';
+        imeiSecondaryRow.style.display = '';
+        imeiSecondaryInput.required = true;
+      } else if (selectedType === 'Mac' || selectedType === 'Apple Watch') {
+        imeiLabelText.textContent = 'Serial *';
+        imeiInput.placeholder = 'Ej: C39XXXXXXX';
+        imeiSecondaryRow.style.display = 'none';
+        imeiSecondaryInput.required = false;
+        imeiSecondaryInput.value = '';
+      } else {
+        imeiLabelText.textContent = 'IMEI / Serie *';
+        imeiInput.placeholder = 'Ej: 351234567890123';
+        imeiSecondaryRow.style.display = 'none';
+        imeiSecondaryInput.required = false;
+        imeiSecondaryInput.value = '';
+      }
+    }
+
+    const deviceType = document.getElementById('device_type');
+    if (deviceType) {
+      deviceType.addEventListener('change', updateIdentityFieldsByType);
+      updateIdentityFieldsByType();
+    }
+
+    // ----- IMEI check en tiempo real -----
+    let imeiCheckTimeout = null;
+    const imeiInput = document.getElementById('imei');
+    const imeiMsg = document.getElementById('imei-check-msg');
+    const reintegrationPanel = document.getElementById('reintegration-panel');
+    const reintegrationForm = document.getElementById('reintegration-form');
+    const reintegrationDesc = document.getElementById('reintegration-desc');
+    const addItemForm = document.querySelector('.card form[method="post"]:not(#bulk-move-form):not(#reintegration-form)');
+
+    function closeReintegrationPanel() {
+      reintegrationPanel.style.display = 'none';
+      imeiMsg.style.display = 'none';
+    }
+    window.closeReintegrationPanel = closeReintegrationPanel;
+
+    function checkImeiExists(value) {
+      if (!value || value.length < 5) {
+        imeiMsg.style.display = 'none';
+        reintegrationPanel.style.display = 'none';
+        return;
+      }
+      fetch('/inventory/check-imei?imei=' + encodeURIComponent(value))
+        .then(r => r.json())
+        .then(data => {
+          if (!data.found) {
+            imeiMsg.style.display = 'none';
+            reintegrationPanel.style.display = 'none';
+            return;
+          }
+          if (data.status === 'disponible') {
+            imeiMsg.style.display = 'block';
+            imeiMsg.innerHTML = '<span style="background:#fee2e2;color:#991b1b;padding:.35rem .65rem;border-radius:6px;font-size:.87rem;display:inline-block">' +
+              '⛔ IMEI ya existe y está <strong>disponible</strong> en inventario — ' + (data.model || data.imei) + ' [' + data.container + ']</span>';
+            reintegrationPanel.style.display = 'none';
+          } else {
+            imeiMsg.style.display = 'none';
+            reintegrationPanel.style.display = 'block';
+            reintegrationDesc.textContent = 'IMEI: ' + data.imei + ' — ' + (data.model || 'sin modelo') +
+              (data.device_type ? ' (' + data.device_type + ')' : '') +
+              '. El equipo fue vendido y puede ser reintegrado con un nuevo precio de compra.';
+            reintegrationForm.action = '/inventory/reintegrate/' + data.item_id;
+          }
+        })
+        .catch(() => {});
+    }
+
+    if (imeiInput) {
+      imeiInput.addEventListener('input', function () {
+        clearTimeout(imeiCheckTimeout);
+        imeiCheckTimeout = setTimeout(() => checkImeiExists(this.value.trim()), 400);
+      });
+      imeiInput.addEventListener('blur', function () {
+        clearTimeout(imeiCheckTimeout);
+        checkImeiExists(this.value.trim());
+      });
+    }
+
+    const selectAll = document.getElementById('select-all-available');
+    const bulkChecks = document.querySelectorAll('.bulk-item-checkbox');
+    const bulkForm = document.getElementById('bulk-move-form');
+    const hiddenInputs = document.getElementById('bulk-move-hidden-inputs');
+    const quickFilterBlock = document.getElementById('quick-filter-block');
+    const quickFilterImei = document.getElementById('quick-filter-imei');
+    const quickFilterName = document.getElementById('quick-filter-name');
+    const quickFilterCount = document.getElementById('quick-filter-count');
+    const quickClearFilters = document.getElementById('quick-clear-filters');
+    const inventoryRows = document.querySelectorAll('.inventory-row');
+    const singleMoveForms = document.querySelectorAll('.move-form');
+    const transferModal = document.getElementById('transfer-confirm-modal');
+    const transferModalTitle = document.getElementById('transfer-modal-title');
+    const transferModalSubtitle = document.getElementById('transfer-modal-subtitle');
+    const transferModalFrom = document.getElementById('transfer-modal-from');
+    const transferModalTo = document.getElementById('transfer-modal-to');
+    const transferModalMetrics = document.getElementById('transfer-modal-metrics');
+    const transferModalExtra = document.getElementById('transfer-modal-extra');
+    const transferModalClose = document.getElementById('transfer-modal-close');
+    const transferModalCancel = document.getElementById('transfer-modal-cancel');
+    const transferModalConfirm = document.getElementById('transfer-modal-confirm');
+    let resolveTransferModal = null;
+
+    function normalizeText(value) {
+      return (value || '')
+        .toString()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+    }
+
+    function applyQuickFilters() {
+      if (!inventoryRows.length) return;
+      const block = normalizeText(quickFilterBlock ? quickFilterBlock.value : '');
+      const imei = normalizeText(quickFilterImei ? quickFilterImei.value : '');
+      const name = normalizeText(quickFilterName ? quickFilterName.value : '');
+
+      let visibleCount = 0;
+      inventoryRows.forEach((row) => {
+        const rowBlock = normalizeText(row.dataset.block || '');
+        const rowImei = normalizeText(row.dataset.imei || '');
+        const rowName = normalizeText(row.dataset.name || '');
+
+        const matchesBlock = !block || rowBlock.includes(block);
+        const matchesImei = !imei || rowImei.includes(imei);
+        const matchesName = !name || rowName.includes(name);
+        const isVisible = matchesBlock && matchesImei && matchesName;
+
+        row.style.display = isVisible ? '' : 'none';
+        if (isVisible) visibleCount += 1;
+      });
+
+      if (quickFilterCount) {
+        quickFilterCount.textContent = visibleCount + ' equipo(s) visible(s)';
+      }
+    }
+
+    [quickFilterBlock, quickFilterImei, quickFilterName].forEach((el) => {
+      if (!el) return;
+      el.addEventListener('input', applyQuickFilters);
+      el.addEventListener('change', applyQuickFilters);
+    });
+
+    if (quickClearFilters) {
+      quickClearFilters.addEventListener('click', function () {
+        if (quickFilterBlock) quickFilterBlock.value = '';
+        if (quickFilterImei) quickFilterImei.value = '';
+        if (quickFilterName) quickFilterName.value = '';
+        applyQuickFilters();
+      });
+    }
+
+    applyQuickFilters();
+
+    if (selectAll) {
+      selectAll.addEventListener('change', function () {
+        bulkChecks.forEach((check) => {
+          check.checked = this.checked;
+        });
+      });
+    }
+
+    function closeTransferModal(confirmed) {
+      if (!transferModal) return;
+      transferModal.classList.remove('is-open');
+      transferModal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('modal-open');
+      if (resolveTransferModal) {
+        resolveTransferModal(Boolean(confirmed));
+        resolveTransferModal = null;
+      }
+    }
+
+    function renderTransferMetric(label, value, tone) {
+      const safeTone = tone || 'neutral';
+      return '<div class="transfer-metric tone-' + safeTone + '">' +
+        '<span class="metric-label">' + label + '</span>' +
+        '<strong class="metric-value">' + value + '</strong>' +
+      '</div>';
+    }
+
+    function openTransferModal(payload) {
+      if (!transferModal) {
+        return Promise.resolve(window.confirm('Confirmar traslado'));
+      }
+
+      transferModalTitle.textContent = payload.title || 'Confirmar traslado';
+      transferModalSubtitle.textContent = payload.subtitle || '';
+      transferModalFrom.textContent = payload.from || 'Sin contenedor';
+      transferModalTo.textContent = payload.to || 'Sin destino';
+      transferModalExtra.textContent = payload.extra || '';
+
+      transferModalMetrics.innerHTML = (payload.metrics || []).map((m) => {
+        return renderTransferMetric(m.label, m.value, m.tone);
+      }).join('');
+
+      transferModal.classList.add('is-open');
+      transferModal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('modal-open');
+
+      return new Promise((resolve) => {
+        resolveTransferModal = resolve;
+      });
+    }
+
+    if (transferModalClose) {
+      transferModalClose.addEventListener('click', function () { closeTransferModal(false); });
+    }
+    if (transferModalCancel) {
+      transferModalCancel.addEventListener('click', function () { closeTransferModal(false); });
+    }
+    if (transferModalConfirm) {
+      transferModalConfirm.addEventListener('click', function () { closeTransferModal(true); });
+    }
+    if (transferModal) {
+      transferModal.addEventListener('click', function (event) {
+        if (event.target === transferModal) {
+          closeTransferModal(false);
+        }
+      });
+    }
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && transferModal && transferModal.classList.contains('is-open')) {
+        closeTransferModal(false);
+      }
+    });
+
+    singleMoveForms.forEach((form) => {
+      form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const targetSelect = form.querySelector('select[name="target_container_id"]');
+        const targetName = targetSelect ? (targetSelect.options[targetSelect.selectedIndex]?.text || '').trim() : '';
+        const fromName = form.dataset.fromContainer || 'Sin contenedor';
+        const itemLabel = form.dataset.itemLabel || 'Equipo';
+
+        if (!targetName) return;
+
+        const confirmed = await openTransferModal({
+          title: 'Confirmar traslado individual',
+          subtitle: itemLabel,
+          from: fromName,
+          to: targetName,
+          metrics: [
+            { label: 'Equipos a trasladar', value: '1', tone: 'info' },
+            { label: 'Estado actual', value: 'Disponible', tone: 'success' },
+            { label: 'Origen', value: fromName, tone: 'neutral' },
+            { label: 'Destino', value: targetName, tone: 'warning' },
+          ],
+          extra: 'Vas a mover este equipo de stock al contenedor seleccionado. El traslado quedará registrado en trazabilidad.'
+        });
+
+        if (confirmed) {
+          form.submit();
+        }
+      });
+    });
+
+    if (bulkForm && hiddenInputs) {
+      bulkForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const selected = Array.from(bulkChecks).filter((check) => check.checked).map((check) => check.dataset.itemId);
+        const selectedChecks = Array.from(bulkChecks).filter((check) => check.checked);
+        hiddenInputs.innerHTML = '';
+        if (selected.length === 0) {
+          alert('Selecciona al menos un equipo disponible para traslado masivo.');
+          return;
+        }
+
+        const targetSelect = bulkForm.querySelector('select[name="target_container_id"]');
+        const targetName = targetSelect ? (targetSelect.options[targetSelect.selectedIndex]?.text || '').trim() : '';
+        const sourceSet = new Set(
+          selectedChecks.map((check) => (check.dataset.fromContainer || 'Sin contenedor').trim())
+        );
+        const sourceList = Array.from(sourceSet).filter(Boolean);
+        const sampleItems = selectedChecks.slice(0, 3).map((check) => check.dataset.itemLabel || ('#' + check.dataset.itemId));
+        const moreCount = Math.max(0, selected.length - sampleItems.length);
+
+        const confirmed = await openTransferModal({
+          title: 'Confirmar traslado masivo',
+          subtitle: selected.length + ' equipo(s) seleccionado(s)',
+          from: sourceList.length ? sourceList.join(', ') : 'Sin contenedor',
+          to: targetName || 'No seleccionado',
+          metrics: [
+            { label: 'Equipos seleccionados', value: String(selected.length), tone: 'info' },
+            { label: 'Disponibles totales', value: String(bulkChecks.length), tone: 'success' },
+            { label: 'Bloques de origen', value: String(sourceList.length || 1), tone: 'neutral' },
+            { label: 'Destino', value: targetName || 'No seleccionado', tone: 'warning' },
+          ],
+          extra: 'Stock a mover: ' + (sampleItems.length ? sampleItems.join(' | ') : 'Sin muestra') + (moreCount > 0 ? (' | +' + moreCount + ' mas') : '')
+        });
+
+        if (!confirmed) {
+          return;
+        }
+
+        selected.forEach((id) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'inventory_ids[]';
+          input.value = id;
+          hiddenInputs.appendChild(input);
+        });
+
+        bulkForm.submit();
+      });
+    }
+  </script>
+{% endblock %}

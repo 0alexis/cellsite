@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Gestión de Usuarios</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for category, msg in messages %}
+        <li class="flash {{ category }}">{{ msg }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<!-- Crear usuario -->
+<div class="card" style="max-width:700px;margin-bottom:1.5rem">
+  <h2 style="margin-top:0">Nuevo usuario</h2>
+  <form method="post" action="{{ url_for('create_user') }}">
+    <div class="form-row">
+      <label>Usuario *<br>
+        <input type="text" name="username" required placeholder="Ej: carlos" autocomplete="off">
+      </label>
+      <label>Contraseña * (mín. 6 caracteres)<br>
+        <input type="password" name="password" required autocomplete="new-password">
+      </label>
+    </div>
+    <div class="form-row">
+      <label>Rol *<br>
+        <select name="role" required>
+          {% for r in roles %}
+          <option value="{{ r }}">{{ role_labels.get(r, r) }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <div id="role-desc" style="background:#f1f5f9;border-radius:6px;padding:.6rem .9rem;font-size:.87rem;margin-bottom:.85rem;color:#334155"></div>
+    <button class="btn btn-primary" type="submit">+ Crear usuario</button>
+  </form>
+</div>
+
+<!-- Tabla de usuarios -->
+<div class="card">
+  <h2 style="margin-top:0">Usuarios del sistema</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:.93rem">
+    <thead>
+      <tr style="background:#f1f5f9">
+        <th style="padding:.55rem .75rem;text-align:left">Usuario</th>
+        <th style="padding:.55rem .75rem;text-align:left">Rol</th>
+        <th style="padding:.55rem .75rem;text-align:left">Estado</th>
+        <th style="padding:.55rem .75rem;text-align:left">Creado</th>
+        <th style="padding:.55rem .75rem;text-align:left">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr style="border-top:1px solid #e5e7eb" id="row-{{ u.id }}">
+        <td style="padding:.55rem .75rem;font-weight:600">{{ u.username }}
+          {% if u.username == session.get('user') %}<span style="font-size:.75rem;color:#2563eb;margin-left:.4rem">(tú)</span>{% endif %}
+        </td>
+        <td style="padding:.55rem .75rem">
+          <span style="background:{% if u.role=='admin' %}#dbeafe;color:#1d4ed8{% elif u.role=='vendedor' %}#dcfce7;color:#166534{% elif u.role=='bodeguero' %}#fef9c3;color:#854d0e{% else %}#f1f5f9;color:#475569{% endif %};padding:.2rem .6rem;border-radius:999px;font-size:.8rem;font-weight:600">
+            {{ role_labels.get(u.role, u.role) }}
+          </span>
+        </td>
+        <td style="padding:.55rem .75rem">
+          {% if u.active %}
+            <span style="color:#16a34a;font-weight:600">● Activo</span>
+          {% else %}
+            <span style="color:#dc2626;font-weight:600">● Inactivo</span>
+          {% endif %}
+        </td>
+        <td style="padding:.55rem .75rem;color:#6b7280;font-size:.85rem">
+          {{ u.created_at.strftime('%d/%m/%Y') if u.created_at else '—' }}
+        </td>
+        <td style="padding:.55rem .75rem">
+          <button class="btn btn-outline" style="font-size:.8rem;padding:.25rem .6rem"
+            onclick="openEditModal({{ u.id }}, '{{ u.username }}', '{{ u.role }}', {{ '1' if u.active else '0' }})">
+            Editar
+          </button>
+          {% if u.username != session.get('user') %}
+          <form method="post" action="{{ url_for('delete_user', user_id=u.id) }}" style="display:inline"
+                onsubmit="return confirm('¿Eliminar usuario {{ u.username }}? Esta acción no se puede deshacer.')">
+            <button class="btn btn-outline" style="font-size:.8rem;padding:.25rem .6rem;color:#dc2626;border-color:#dc2626" type="submit">
+              Eliminar
+            </button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Tabla de permisos por rol -->
+<div class="card" style="max-width:900px;margin-top:1.5rem">
+  <h2 style="margin-top:0">Permisos por rol</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+    <thead>
+      <tr style="background:#f1f5f9">
+        <th style="padding:.45rem .75rem;text-align:left">Función</th>
+        <th style="padding:.45rem .75rem;text-align:center">Administrador</th>
+        <th style="padding:.45rem .75rem;text-align:center">Vendedor</th>
+        <th style="padding:.45rem .75rem;text-align:center">Bodeguero</th>
+        <th style="padding:.45rem .75rem;text-align:center">Solo lectura</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set perm_rows = [
+        ('Ver clientes', 'ver_clientes'),
+        ('Crear/editar clientes', 'crear_clientes'),
+        ('Ver ventas', 'ver_ventas'),
+        ('Crear ventas', 'crear_ventas'),
+        ('Ver pagos', 'ver_pagos'),
+        ('Registrar pagos', 'registrar_pagos'),
+        ('Ver inventario', 'ver_inventario'),
+        ('Ver precio de compra', 'ver_precio_compra'),
+        ('Agregar inventario', 'agregar_inventario'),
+        ('Mover inventario', 'mover_inventario'),
+        ('Ver estadísticas', 'ver_estadisticas'),
+        ('Exportar Excel', 'exportar_excel'),
+        ('Configuración', 'ver_configuracion'),
+        ('Gestionar usuarios', 'gestionar_usuarios'),
+        ('Ver auditoría', 'ver_auditoria'),
+      ] %}
+      {% set role_perms = {
+        'admin': ['ver_clientes','crear_clientes','ver_ventas','crear_ventas','ver_pagos','registrar_pagos','ver_inventario','ver_precio_compra','agregar_inventario','mover_inventario','ver_estadisticas','exportar_excel','ver_configuracion','gestionar_usuarios','ver_auditoria'],
+        'vendedor': ['ver_clientes','crear_clientes','ver_ventas','crear_ventas','ver_pagos','registrar_pagos','ver_inventario'],
+        'bodeguero': ['ver_inventario','ver_precio_compra','agregar_inventario','mover_inventario'],
+        'readonly': ['ver_clientes','ver_ventas','ver_pagos','ver_inventario','ver_precio_compra','ver_estadisticas'],
+      } %}
+      {% for label, perm in perm_rows %}
+      <tr style="border-top:1px solid #f1f5f9">
+        <td style="padding:.4rem .75rem">{{ label }}</td>
+        {% for r in ['admin','vendedor','bodeguero','readonly'] %}
+        <td style="padding:.4rem .75rem;text-align:center">
+          {% if perm in role_perms[r] %}
+            <span style="color:#16a34a;font-size:1.1rem">✓</span>
+          {% else %}
+            <span style="color:#d1d5db;font-size:1.1rem">—</span>
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p style="margin-top:1rem"><a href="{{ url_for('settings') }}" class="btn btn-outline">← Volver a configuración</a></p>
+
+<!-- Modal editar usuario -->
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:10px;padding:1.5rem;max-width:420px;width:calc(100% - 2rem);box-shadow:0 8px 32px rgba(0,0,0,.18)">
+    <h3 style="margin-top:0" id="modal-title">Editar usuario</h3>
+    <form id="edit-form" method="post" action="">
+      <div class="form-row">
+        <label>Rol<br>
+          <select name="role" id="modal-role">
+            {% for r in roles %}
+            <option value="{{ r }}">{{ role_labels.get(r, r) }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Estado<br>
+          <select name="active" id="modal-active">
+            <option value="1">Activo</option>
+            <option value="0">Inactivo</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-row">
+        <label style="width:100%">Nueva contraseña (dejar vacío = sin cambios)<br>
+          <input type="password" name="password" autocomplete="new-password" placeholder="Mín. 6 caracteres">
+        </label>
+      </div>
+      <div style="display:flex;gap:.75rem;margin-top:1rem">
+        <button class="btn btn-primary" type="submit">Guardar</button>
+        <button class="btn btn-outline" type="button" onclick="closeEditModal()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const roleDescriptions = {
+    admin: 'Acceso completo al sistema: clientes, ventas, pagos, inventario, configuración y auditoría.',
+    vendedor: 'Puede ver clientes, crear ventas y registrar pagos. Sin acceso a precio de compra ni configuración.',
+    bodeguero: 'Puede ver y gestionar inventario (con precio de compra). Sin acceso a ventas ni configuración.',
+    readonly: 'Solo lectura: puede consultar clientes, ventas, pagos e inventario. No puede crear ni editar.',
+  };
+
+  const roleSelect = document.querySelector('form[action="{{ url_for("create_user") }}"] select[name="role"]');
+  const roleDesc = document.getElementById('role-desc');
+  if (roleSelect && roleDesc) {
+    function updateDesc() {
+      roleDesc.textContent = roleDescriptions[roleSelect.value] || '';
+    }
+    roleSelect.addEventListener('change', updateDesc);
+    updateDesc();
+  }
+
+  function openEditModal(id, username, role, active) {
+    document.getElementById('modal-title').textContent = 'Editar: ' + username;
+    document.getElementById('edit-form').action = '/settings/users/' + id + '/edit';
+    document.getElementById('modal-role').value = role;
+    document.getElementById('modal-active').value = String(active);
+    const modal = document.getElementById('edit-modal');
+    modal.style.display = 'flex';
+  }
+
+  function closeEditModal() {
+    document.getElementById('edit-modal').style.display = 'none';
+  }
+
+  document.getElementById('edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+  });
+</script>
+{% endblock %}

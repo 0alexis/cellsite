@@ -26,28 +26,49 @@
       {% endif %}
 
       <fieldset style="border:none;padding:0;margin:0 0 1.2rem 0">
-        <legend style="font-weight:600;margin-bottom:.5rem">Dispositivos a vender</legend>
-        <div id="devices-container">
-          <div class="device-item" style="border:1px solid #e5e7eb;padding:1rem;border-radius:6px;margin-bottom:.75rem;background:#fafafa">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-              <strong style="font-size:.9rem;color:#374151">Dispositivo #<span class="device-number">1</span></strong>
-              <button type="button" class="btn-remove-device" style="background:#ef4444;color:white;border:none;padding:.3rem .6rem;border-radius:4px;cursor:pointer;font-size:.8rem;display:none">✕ Eliminar</button>
-            </div>
-            <div class="form-row">
-              <label>IMEI *<br><input name="imei[]" required></label>
-              <label>Modelo<br><input name="model[]"></label>
-            </div>
-            <div class="form-row">
-              <label>Color<br><input name="color[]"></label>
-              <label>Nº factura<br><input name="invoice[]"></label>
-            </div>
-            <label>Precio (COP) *<br><input name="price[]" required type="text" class="device-price currency-input" placeholder="Ej: 500.000" style="font-size:1.1rem"></label>
+        <legend style="font-weight:600;margin-bottom:.5rem">Selecciona equipos desde inventario</legend>
+
+        {% if available_inventory %}
+          <p class="muted" style="margin-bottom:.75rem">Solo se pueden vender equipos disponibles en inventario.</p>
+          <input type="text" id="inventory-search" placeholder="Buscar por tipo, modelo, IMEI o serial..." style="margin-bottom:.75rem">
+
+          <div id="inventory-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.75rem">
+            {% for item in available_inventory %}
+              <label class="inventory-item" data-search="{{ (item.device_type ~ ' ' ~ (item.model or '') ~ ' ' ~ item.imei ~ ' ' ~ (item.imei_secondary or '') ~ ' ' ~ (item.container.name if item.container else ''))|lower }}" style="border:1px solid #e2e8f0;padding:.8rem;border-radius:8px;cursor:pointer;background:#fff">
+                <div style="display:flex;justify-content:space-between;gap:.5rem;align-items:flex-start">
+                  <div>
+                    <div style="font-size:.8rem;color:#64748b">{{ item.device_type }}</div>
+                    <strong style="font-size:.95rem">{{ item.model or 'Sin modelo' }}</strong>
+                  </div>
+                  <input type="checkbox" name="inventory_ids[]" value="{{ item.id }}" class="inventory-checkbox" data-price="{{ item.price|int }}">
+                </div>
+                <div class="muted" style="font-size:.82rem;margin-top:.4rem">
+                  {% if item.device_type == 'Telefono' %}
+                    IMEI 1: {{ item.imei }}{% if item.imei_secondary %} | IMEI 2: {{ item.imei_secondary }}{% endif %}
+                  {% else %}
+                    Serial: {{ item.imei }}
+                  {% endif %}
+                </div>
+                {% if item.color %}
+                <div class="muted" style="font-size:.82rem">Color: {{ item.color }}</div>
+                {% endif %}
+                <div class="muted" style="font-size:.82rem">Contenedor: {{ item.container.name if item.container else '—' }}</div>
+                <div style="margin-top:.4rem;font-weight:700;color:#0f766e">
+                  COP {{ '{:,.0f}'.format(item.price|int) }}
+                </div>
+              </label>
+            {% endfor %}
           </div>
-        </div>
-        <button type="button" id="add-device" class="btn btn-outline" style="width:100%;margin-top:.5rem">+ Agregar otro dispositivo</button>
-        <div style="margin-top:1rem;padding:.75rem;background:#eff6ff;border-radius:6px">
-          <strong>Precio total:</strong> <span id="total-price" style="font-size:1.2rem;color:#2563eb">COP 0</span>
-        </div>
+          <div style="margin-top:1rem;padding:.75rem;background:#eff6ff;border-radius:6px">
+            <strong>Total seleccionado:</strong> <span id="total-price" style="font-size:1.2rem;color:#2563eb">COP 0</span>
+          </div>
+        {% else %}
+          <div style="padding:1rem;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px">
+            <strong>No hay equipos disponibles en inventario.</strong>
+            <div class="muted" style="margin-top:.35rem">Carga equipos primero para poder registrar ventas.</div>
+            <a href="{{ url_for('inventory') }}" class="btn btn-primary" style="margin-top:.75rem">Ir a inventario</a>
+          </div>
+        {% endif %}
       </fieldset>
 
       <fieldset style="border:none;padding:0;margin:0">
@@ -63,94 +84,56 @@
   </div>
 
   <script>
-    let deviceCount = 1;
-
-    // Función para actualizar el precio total
     function updateTotalPrice() {
       let total = 0;
-      document.querySelectorAll('.device-price').forEach(input => {
-        const cleanValue = input.value.replace(/\D/g, ''); // Remover puntos y caracteres no numéricos
-        const value = parseFloat(cleanValue) || 0;
-        total += value;
+      document.querySelectorAll('.inventory-checkbox:checked').forEach((checkbox) => {
+        total += parseInt(checkbox.dataset.price || '0', 10);
       });
-      document.getElementById('total-price').textContent = 'COP ' + total.toLocaleString('es-CO', {maximumFractionDigits: 0});
+      const target = document.getElementById('total-price');
+      if (target) {
+        target.textContent = 'COP ' + total.toLocaleString('es-CO', { maximumFractionDigits: 0 });
+      }
     }
 
-    // Función para actualizar números de dispositivos
-    function updateDeviceNumbers() {
-      document.querySelectorAll('.device-number').forEach((span, index) => {
-        span.textContent = index + 1;
+    document.querySelectorAll('.inventory-checkbox').forEach((checkbox) => {
+      checkbox.addEventListener('change', function () {
+        const card = this.closest('.inventory-item');
+        if (!card) return;
+        if (this.checked) {
+          card.style.borderColor = '#0ea5e9';
+          card.style.boxShadow = '0 0 0 2px rgba(14,165,233,0.15)';
+          card.style.background = '#f0f9ff';
+        } else {
+          card.style.borderColor = '#e2e8f0';
+          card.style.boxShadow = 'none';
+          card.style.background = '#fff';
+        }
+        updateTotalPrice();
       });
-      // Mostrar/ocultar botones de eliminar
-      const removeButtons = document.querySelectorAll('.btn-remove-device');
-      removeButtons.forEach((btn, index) => {
-        btn.style.display = removeButtons.length > 1 ? 'inline-block' : 'none';
-      });
-    }
+    });
 
-    // Agregar nuevo dispositivo
-    document.getElementById('add-device').addEventListener('click', function() {
-      deviceCount++;
-      const container = document.getElementById('devices-container');
-      const newDevice = document.createElement('div');
-      newDevice.className = 'device-item';
-      newDevice.style.cssText = 'border:1px solid #e5e7eb;padding:1rem;border-radius:6px;margin-bottom:.75rem;background:#fafafa';
-      newDevice.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-          <strong style="font-size:.9rem;color:#374151">Dispositivo #<span class="device-number">${deviceCount}</span></strong>
-          <button type="button" class="btn-remove-device" style="background:#ef4444;color:white;border:none;padding:.3rem .6rem;border-radius:4px;cursor:pointer;font-size:.8rem">✕ Eliminar</button>
-        </div>
-        <div class="form-row">
-          <label>IMEI *<br><input name="imei[]" required></label>
-          <label>Modelo<br><input name="model[]"></label>
-        </div>
-        <div class="form-row">
-          <label>Color<br><input name="color[]"></label>
-          <label>Nº factura<br><input name="invoice[]"></label>
-        </div>
-        <label>Precio (COP) *<br><input name="price[]" required type="text" class="device-price currency-input" placeholder="Ej: 500.000" style="font-size:1.1rem"></label>
-      `;
-      container.appendChild(newDevice);
-      
-      // Agregar formato de moneda al nuevo input de precio
-      const newPriceInput = newDevice.querySelector('.currency-input');
-      if (newPriceInput) {
-        newPriceInput.addEventListener('input', function() {
-          formatCurrency(this);
+    const search = document.getElementById('inventory-search');
+    if (search) {
+      search.addEventListener('input', function () {
+        const query = this.value.toLowerCase().trim();
+        document.querySelectorAll('.inventory-item').forEach((item) => {
+          const text = item.dataset.search || '';
+          item.style.display = text.includes(query) ? '' : 'none';
         });
-      }
-      
-      // Agregar event listener al botón de eliminar
-      newDevice.querySelector('.btn-remove-device').addEventListener('click', function() {
-        newDevice.remove();
-        updateDeviceNumbers();
-        updateTotalPrice();
       });
-      
-      // Agregar event listener al precio
-      newDevice.querySelector('.device-price').addEventListener('input', updateTotalPrice);
-      
-      updateDeviceNumbers();
-    });
+    }
 
-    // Event delegation para botones de eliminar existentes
-    document.getElementById('devices-container').addEventListener('click', function(e) {
-      if (e.target.classList.contains('btn-remove-device')) {
-        e.target.closest('.device-item').remove();
-        updateDeviceNumbers();
-        updateTotalPrice();
-      }
-    });
+    const saleForm = document.querySelector('form');
+    if (saleForm) {
+      saleForm.addEventListener('submit', function (event) {
+        const selected = document.querySelectorAll('.inventory-checkbox:checked').length;
+        if (document.querySelectorAll('.inventory-checkbox').length > 0 && selected === 0) {
+          event.preventDefault();
+          alert('Selecciona al menos un equipo del inventario para crear la venta.');
+        }
+      });
+    }
 
-    // Actualizar precio total cuando cambian los inputs
-    document.addEventListener('input', function(e) {
-      if (e.target.classList.contains('device-price')) {
-        updateTotalPrice();
-      }
-    });
-
-    // Inicializar
-    updateDeviceNumbers();
     updateTotalPrice();
   </script>
 {% endblock %}

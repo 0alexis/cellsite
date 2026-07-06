@@ -46,16 +46,23 @@
           <h4 style="color:{% if product.paid %}#16a34a{% else %}#2563eb{% endif %};margin:0;font-size:1rem">
             {% if product.paid %}✓{% endif %} Dispositivo #{{ loop.index }}
           </h4>
-          {% if product.paid %}
-          <span style="background:#16a34a;color:white;padding:.25rem .5rem;border-radius:4px;font-size:.75rem;font-weight:700">✓ PAGADO</span>
-          {% else %}
-          <span style="background:#fef3c7;color:#92400e;padding:.25rem .5rem;border-radius:4px;font-size:.75rem;font-weight:600">PENDIENTE</span>
-          {% endif %}
+          <div style="display:flex;align-items:center;gap:.5rem">
+            {% if product.paid %}
+            <span style="background:#16a34a;color:white;padding:.25rem .5rem;border-radius:4px;font-size:.75rem;font-weight:700">✓ PAGADO</span>
+            <a class="btn btn-outline" href="{{ url_for('invoice_pdf_product', sale_id=sale.id, product_id=product.id) }}" style="font-size:.75rem;padding:.25rem .5rem">Factura PDF</a>
+            {% else %}
+            <span style="background:#fef3c7;color:#92400e;padding:.25rem .5rem;border-radius:4px;font-size:.75rem;font-weight:600">PENDIENTE</span>
+            {% endif %}
+          </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:.95rem">
           <div>
-            <div class="muted">IMEI:</div>
+            <div class="muted">{% if product.device_type == 'Telefono' %}IMEI 1:{% else %}Serial:{% endif %}</div>
             <strong>{{ product.imei }}</strong>
+            {% if product.device_type == 'Telefono' and product.imei_secondary %}
+            <div class="muted" style="margin-top:.35rem">IMEI 2:</div>
+            <strong>{{ product.imei_secondary }}</strong>
+            {% endif %}
           </div>
           <div>
             <div class="muted">Modelo:</div>
@@ -104,14 +111,20 @@
     <h3>Abonos realizados</h3>
     {% if sale.payments %}
     <table class="table">
-      <thead><tr><th>Fecha</th><th>Monto</th><th>Método</th><th>Nota</th></tr></thead>
+      <thead><tr><th>Fecha</th><th>Monto</th><th>Método</th><th>Nota</th><th>Recibo</th></tr></thead>
       <tbody>
       {% for p in sale.payments %}
         <tr>
           <td class="muted">{{ p.date.strftime('%d/%m/%Y %H:%M') if p.date else 'N/A' }}</td>
           <td><strong>COP {{ '{:,.0f}'.format(p.amount|int) }}</strong></td>
-          <td>{{ p.method or '—' }}</td>
+          <td>
+            {{ p.method or '—' }}
+            {% if p.method == 'cuentas' and (p.account_from or p.account_to) %}
+            <div class="muted" style="font-size:.78rem">{{ p.account_from or '—' }} → {{ p.account_to or '—' }}</div>
+            {% endif %}
+          </td>
           <td class="muted">{{ p.note or '' }}</td>
+          <td><a class="btn btn-outline" href="{{ url_for('payment_receipt_pdf', payment_id=p.id) }}" style="font-size:.75rem;padding:.25rem .5rem">Recibo PDF</a></td>
         </tr>
       {% endfor %}
       </tbody>
@@ -150,10 +163,28 @@
       <div class="form-row">
         <label>Monto a abonar (COP) *<br><input name="amount" required type="text" class="currency-input" placeholder="Ej: 50.000" style="font-size:1.1rem"></label>
         <label>Método de pago<br>
-          <select name="method">
+          <select name="method" id="method-single-payment">
             <option value="efectivo">Efectivo</option>
-            <option value="transferencia">Transferencia</option>
-            <option value="credito">Credito</option>
+            <option value="nequi">Nequi</option>
+            <option value="cuentas">Cuentas</option>
+          </select>
+        </label>
+      </div>
+      <div id="transfer-fields-single" class="form-row" style="display:none">
+        <label>Cuenta origen<br>
+          <select name="account_from" id="account-from-single">
+            <option value="">Selecciona...</option>
+            {% for account in payment_accounts %}
+            <option value="{{ account }}">{{ account }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Cuenta destino<br>
+          <select name="account_to" id="account-to-single">
+            <option value="">Selecciona...</option>
+            {% for account in payment_accounts %}
+            <option value="{{ account }}">{{ account }}</option>
+            {% endfor %}
           </select>
         </label>
       </div>
@@ -161,6 +192,11 @@
       <div style="margin-top:.5rem;display:flex;gap:.5rem">
         <button class="btn btn-primary" type="submit">Registrar abono</button>
       </div>
+      {% if not payment_accounts %}
+      <p class="muted" style="font-size:.82rem;margin-top:.5rem">
+        Configura cuentas en <a href="{{ url_for('settings') }}">Configuración</a> para habilitar origen/destino en transferencias.
+      </p>
+      {% endif %}
     </form>
     {% endif %}
   </div>
@@ -190,4 +226,28 @@
     {% endif %}
   </div>
   {% endif %}
+
+  <script>
+    function toggleTransferFieldsSingle() {
+      const method = document.getElementById('method-single-payment');
+      const block = document.getElementById('transfer-fields-single');
+      const from = document.getElementById('account-from-single');
+      const to = document.getElementById('account-to-single');
+      if (!method || !block || !from || !to) return;
+      const isTransfer = method.value === 'cuentas';
+      block.style.display = isTransfer ? '' : 'none';
+      from.required = isTransfer;
+      to.required = isTransfer;
+      if (!isTransfer) {
+        from.value = '';
+        to.value = '';
+      }
+    }
+
+    const methodSingle = document.getElementById('method-single-payment');
+    if (methodSingle) {
+      methodSingle.addEventListener('change', toggleTransferFieldsSingle);
+      toggleTransferFieldsSingle();
+    }
+  </script>
 {% endblock %}

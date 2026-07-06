@@ -5,7 +5,7 @@
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div>
         <h2>{{ client.name }}</h2>
-        <p class="muted">Tel: {{ client.phone or '—' }} · Email: {{ client.email or '—' }}</p>
+        <p class="muted">ID/NIT: {{ client.id_nit or '—' }} · Tel: {{ client.phone or '—' }} · Email: {{ client.email or '—' }}</p>
         <p>{{ client.address or '' }}</p>
         {% if client.notes %}<p class="muted" style="font-size:.85rem"><strong>Notas:</strong> {{ client.notes }}</p>{% endif %}
       </div>
@@ -104,17 +104,35 @@
     </div>
     {% endif %}
     
-    <form method="post" action="{{ url_for('auto_payment') }}">>
+    <form method="post" action="{{ url_for('auto_payment') }}">
       <input type="hidden" name="client_id" value="{{ client.id }}">
       <div class="form-row">
         <label>Monto a abonar (COP) *<br>
           <input name="amount" required type="text" class="currency-input" placeholder="Ej: {{ '{:,.0f}'.format(total_debt.value|int) }}" style="font-size:1.1rem">
         </label>
         <label>Método de pago<br>
-          <select name="method" style="font-size:1rem">
+          <select name="method" id="method-auto-payment" style="font-size:1rem">
             <option value="efectivo">Efectivo</option>
-            <option value="transferencia">Transferencia</option>
-            <option value="credito">Credito</option>
+            <option value="nequi">Nequi</option>
+            <option value="cuentas">Cuentas</option>
+          </select>
+        </label>
+      </div>
+      <div id="transfer-fields-auto" class="form-row" style="display:none">
+        <label>Cuenta origen<br>
+          <select name="account_from" id="account-from-auto">
+            <option value="">Selecciona...</option>
+            {% for account in payment_accounts %}
+            <option value="{{ account }}">{{ account }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Cuenta destino<br>
+          <select name="account_to" id="account-to-auto">
+            <option value="">Selecciona...</option>
+            {% for account in payment_accounts %}
+            <option value="{{ account }}">{{ account }}</option>
+            {% endfor %}
           </select>
         </label>
       </div>
@@ -129,6 +147,11 @@
         <strong>💡 Cómo funciona:</strong> El pago se aplicará primero a las ventas más antiguas con deuda. 
         Si el monto excede la deuda total (COP {{ '{:,.0f}'.format(total_debt.value|int) }}), el sobrante quedará como saldo a favor.
       </div>
+      {% if not payment_accounts %}
+      <p class="muted" style="font-size:.82rem;margin-top:.5rem">
+        Configura cuentas en <a href="{{ url_for('settings') }}">Configuración</a> para habilitar origen/destino en transferencias.
+      </p>
+      {% endif %}
     </form>
   </div>
   {% endif %}
@@ -220,4 +243,28 @@
     <p class="muted">No hay ventas registradas. <a href="{{ url_for('new_sale', client_id=client.id) }}">Registrar la primera »</a></p>
     {% endif %}
   </div>
+
+  <script>
+    function toggleTransferFieldsAuto() {
+      const method = document.getElementById('method-auto-payment');
+      const block = document.getElementById('transfer-fields-auto');
+      const from = document.getElementById('account-from-auto');
+      const to = document.getElementById('account-to-auto');
+      if (!method || !block || !from || !to) return;
+      const isTransfer = method.value === 'cuentas';
+      block.style.display = isTransfer ? '' : 'none';
+      from.required = isTransfer;
+      to.required = isTransfer;
+      if (!isTransfer) {
+        from.value = '';
+        to.value = '';
+      }
+    }
+
+    const methodAuto = document.getElementById('method-auto-payment');
+    if (methodAuto) {
+      methodAuto.addEventListener('change', toggleTransferFieldsAuto);
+      toggleTransferFieldsAuto();
+    }
+  </script>
 {% endblock %}

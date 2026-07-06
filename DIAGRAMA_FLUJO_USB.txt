@@ -1,0 +1,256 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║            DIAGRAMA DE FLUJO - CONSTRUCCION USB PORTABLE CELLSITE               ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ FASE 1: PREPARACION DEL DESARROLLADOR                                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────┐
+    │ Instalar Python 3.8+            │ ← REQUISITO MINIMO
+    │ (Marcar: Add Python to PATH)    │
+    └──────────────┬──────────────────┘
+                   │
+                   ↓
+    ┌─────────────────────────────────┐
+    │ Clonar/descargar repo CellSite  │
+    └──────────────┬──────────────────┘
+                   │
+                   ↓
+    ┌─────────────────────────────────┐
+    │ Abrir CMD en carpeta del repo   │
+    └──────────────┬──────────────────┘
+                   │
+                   ↓
+    ┌─────────────────────────────────┐
+    │ Ejecutar: verify_build_ready.bat│ ← DIAGNOSIS AMBIENTE
+    └──────────────┬──────────────────┘
+                   │
+        ┌──────────┴──────────┐
+        │                     │
+        ↓                     ↓
+    [ERROR]              [OK, WARNINGS o READY]
+        │                     │
+        │                     ├→ Corregir ERROR
+        │                     │
+        └─────────────────────┘
+                │
+                ↓ (solo si [OK])
+    ┌─────────────────────────────────┐
+    │ Ejecutar: build_portable.bat    │ ← CONSTRUCCION
+    │ (tarda 1-2 minutos)             │
+    └──────────────┬──────────────────┘
+                   │
+        ┌──────────┴──────────┐
+        │                     │
+        ↓                     ↓
+    [FALLA]              [EXITO]
+        │                     │
+        │              "BUILD COMPLETO!"
+        │                     │
+        ├─ Ver errores        ├→ CellSite.exe creado (~80-100 MB)
+        ├─ Corregir app.py    ├→ dist\CellSite_portable\ listo
+        └─ Reintentar         └─ Archivos auxiliares copiados
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ FASE 2: PRUEBA Y VALIDACION LOCAL                                            │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────┐
+    │ Navegar a: dist\CellSite_portable\      │
+    └────────────────┬────────────────────────┘
+                     │
+                     ↓
+    ┌─────────────────────────────────────────┐
+    │ Doble-clic en: start_app.bat            │
+    │ (O ejecutar desde CMD)                  │
+    └────────────────┬────────────────────────┘
+                     │
+        ┌────────────┴──────────┐
+        │                       │
+        ↓                       ↓
+    [ERROR]               [ABRIENDO]
+        │                       │
+        ├─ Verificar permisos   ├→ Esperar 5-10 seg
+        ├─ Ver puerto 5001      ├→ Se abre navegador
+        ├─ Revisar data/        └→ http://127.0.0.1:5001
+        └─ Ejecutar de nuevo        │
+                                    ↓
+                          ┌─────────────────────┐
+                          │ Ingresar credenciales│
+                          │ admin / admin       │
+                          └────────┬────────────┘
+                                   │
+                                   ↓
+                          ┌─────────────────────┐
+                          │ Probar funcionalidad│
+                          │ - Crear cliente     │
+                          │ - Nueva venta       │
+                          │ - Dashboard         │
+                          │ - Generar PDF       │
+                          │ - Exportar Excel    │
+                          └────────┬────────────┘
+                                   │
+                        ┌──────────┴──────────┐
+                        │                     │
+                        ↓                     ↓
+                    [FUNCIONA]            [ERROR]
+                        │                     │
+                        └─────────────────────┘
+                                │
+                                ↓ (si funciona)
+                    ┌──────────────────────────┐
+                    │ APP LISTA PARA DISTRIBUIR│
+                    └──────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ FASE 3: PREPARACION PARA DISTRIBUCION                                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────┐
+    │ Carpeta dist\CellSite_portable\                    │
+    │ ├── CellSite.exe            (EJECUTABLE PRINCIPAL) │
+    │ ├── start_app.bat           (script inicio)        │
+    │ ├── data/                   (carpeta datos)        │
+    │ ├── templates/              (incluidos en .exe)    │
+    │ ├── static/                 (incluidos en .exe)    │
+    │ ├── README.md               (documentacion)        │
+    │ └── INSTRUCCIONES_USB_PORTABLE.txt  (guia usuario)│
+    └────────────────┬────────────────────────────────────┘
+                     │
+                     ↓
+    ┌─────────────────────────────────────────────────────┐
+    │ Comprimir o copiar a USB                            │
+    │ opcion A: ZIP entire folder                         │
+    │ opcion B: Copy to USB drive                         │
+    │ opcion C: Upload to server/cloud                    │
+    └────────────────┬────────────────────────────────────┘
+                     │
+                     ↓
+    ┌─────────────────────────────────────────────────────┐
+    │ Distribuir a usuarios finales:                      │
+    │ - Descargar ZIP y extraer                           │
+    │ - O copiar desde USB compartido                     │
+    │ - O descargar de servidor                           │
+    └────────────────┬────────────────────────────────────┘
+                     │
+                     ↓
+    ┌─────────────────────────────────────────────────────┐
+    │ Usuario final abre: start_app.bat                   │
+    │ Y funciona sin instalar nada!                       │
+    └─────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ FASE 4: USUARIO FINAL EN PRODUCCION                                          │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+    Windows PC (sin Python instalado)
+    │
+    ├── USB / Descarga / Red
+    │   └── CellSite_portable\
+    │       ├── CellSite.exe ← Usuario hace doble-clic en start_app.bat
+    │       ├── start_app.bat
+    │       ├── data\
+    │       │   └── app.db (base de datos local)
+    │       └── ...
+    │
+    ↓
+    CellSite.exe inicia
+    │
+    ├─ Se abre navegador automáticamente
+    │
+    ├─ Carga en http://127.0.0.1:5001
+    │
+    └─ Usuario entra a sistema
+       └─ Trabaja normalmente
+          (sin necesidad de Python, internet, instalación, etc.)
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ FLUJO DE ACTUALIZACIONES Y MANTENIMIENTO                                     │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+    Cambio en codigo
+    (app.py, templates/, requirements.txt)
+    │
+    ├─ Editar archivo/s en desarrollo
+    │
+    ├─ Probar localmente (python app.py o start.bat)
+    │
+    ├─ Ejecutar: build_portable.bat
+    │  └─ Reconstruye CellSite.exe
+    │
+    ├─ Probar start_app.bat en nueva carpeta dist\
+    │
+    └─ Distribuir nuevo .exe a usuarios
+       └─ Sus datos en data/app.db NO se pierden
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING RAPIDO                                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+    Problema                   Solucion
+    ────────────────────────   ──────────────────────────────
+    Python no found        → Instalar Python con "Add to PATH"
+    No templates found     → Verificar carpeta templates/ existe
+    Build fails            → Ejecutar verify_build_ready.bat
+    Start_app no abre      → Run en CMD para ver errores
+    Permission denied      → Permisos carpeta o USB readonly
+    Exe tarda en iniciar   → Normal en USB 2.0, usa USB 3.0
+    Falta icono            → Crear ICON_CELLSITE.ico (.256x256px)
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ARCHIVOS PRINCIPALES CREADOS                                                 │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+    build_portable.bat
+    └─ Script de construccion principal
+       └─ Crea entorno virtual, instala deps, compila con PyInstaller
+
+    start_app.bat
+    └─ Script para iniciar app compilada
+       └─ Verifica CellSite.exe, crea carpeta data/, abre navegador
+
+    verify_build_ready.bat
+    └─ Script de diagnostico pre-construccion
+       └─ Verifica Python, archivos, dependencias, espacio disco
+
+    menu.bat
+    └─ Menu interactivo principal
+       └─ Opciones: iniciar, construir, verificar, abrir docs
+
+    CellSite_portable.spec
+    └─ Configuracion PyInstaller
+       └─ Define como empaquetar app (onefile, add-data, etc.)
+
+    Documentacion (TXT):
+    ├─ README_CONSTRUCCION_USB.txt        (resumen para empezar)
+    ├─ INSTRUCCIONES_USB_PORTABLE.txt     (para usuarios finales)
+    ├─ WORKFLOW_CONSTRUCCION_USB.txt      (procedimiento detallado)
+    └─ README.md                          (actualizado)
+
+
+═════════════════════════════════════════════════════════════════════════════════
+
+RESUMEN EJECUTIVO:
+
+  PASO 1: verify_build_ready.bat      (2 minutos)
+  PASO 2: build_portable.bat          (2 minutos)  
+  PASO 3: Probar start_app.bat        (2 minutos)
+  PASO 4: Copiar a USB / Distribuir   (5 minutos)
+  
+  TOTAL: ~10-15 minutos de desarrollo
+  RESULTADO: Aplicacion USB portable 100% funcional
+
+
+═════════════════════════════════════════════════════════════════════════════════
+Fecha: 2026-06-22
+Autor: Equipo CellSite
+Version: 1.0 - USB Portable Workflow Diagram
+═════════════════════════════════════════════════════════════════════════════════

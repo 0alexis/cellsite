@@ -2,7 +2,7 @@
 
 {% block content %}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
-    <h2 style="margin:0">Caja — 
+    <h2 style="margin:0">Base de estadisticas — 
       {% if is_today %}
         Hoy {{ selected_date.strftime('%d/%m/%Y') }}
       {% else %}
@@ -41,32 +41,33 @@
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem">
     <div class="card" style="padding:1.2rem">
-      <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Teléfonos vendidos</div>
+      <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Equipos vendidos</div>
       <div style="font-size:2.5rem;font-weight:700;color:#2563eb">{{ phones_sold_today }}</div>
     </div>
     <div class="card" style="padding:1.2rem">
-      <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Total vendido</div>
-      <div style="font-size:2rem;font-weight:700;color:#16a34a">COP {{ '{:,.0f}'.format(total_sales_today|int) }}</div>
+      <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Dinero que entra</div>
+      <div style="font-size:2rem;font-weight:700;color:#059669">COP {{ '{:,.0f}'.format(actual_income|int) }}</div>
     </div>
     <div class="card" style="padding:1.2rem">
-      <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Ingresos reales (pagos)</div>
-      <div style="font-size:2rem;font-weight:700;color:#059669">COP {{ '{:,.0f}'.format(actual_income|int) }}</div>
-      <div class="muted" style="font-size:.75rem;margin-top:.25rem">Incluye abonos del día</div>
+      <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Dinero que deben</div>
+      <div style="font-size:2rem;font-weight:700;color:#dc2626">COP {{ '{:,.0f}'.format(total_debt_all|int) }}</div>
     </div>
-    <a href="{{ url_for('clients') }}" style="text-decoration:none;color:inherit">
-      <div class="card" style="padding:1.2rem;background:#fff7ed;border:2px solid #fb923c">
-        <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">💰 Deuda Total Global</div>
-        <div style="font-size:2rem;font-weight:700;color:#dc2626">COP {{ '{:,.0f}'.format(total_debt_all|int) }}</div>
-        <div class="muted" style="font-size:.75rem;margin-top:.25rem">{{ debtors|length }} persona{% if debtors|length != 1 %}s{% endif %}</div>
-      </div>
-    </a>
+    <div class="card" style="padding:1.2rem;background:#f0f9ff;border:2px solid #38bdf8">
+      <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Cantidad de inventario</div>
+      <div style="font-size:2rem;font-weight:700;color:#0369a1">{{ inventory_available }}</div>
+      <div class="muted" style="font-size:.75rem;margin-top:.25rem">equipos disponibles</div>
+    </div>
+    <div class="card" style="padding:1.2rem;background:#fff7ed;border:2px solid #fb923c">
+      <div class="muted" style="font-size:.85rem;margin-bottom:.25rem">Personas morosas</div>
+      <div style="font-size:2rem;font-weight:700;color:#c2410c">{{ overdue_clients_count }}</div>
+      <div class="muted" style="font-size:.75rem;margin-top:.25rem">con mas de 3 dias de atraso</div>
+    </div>
   </div>
 
-  {# Dashboard de pagos por método #}
   <div class="card" style="margin-bottom:1.5rem">
-    <h3>💳 Ingresos por método — {{ selected_date.strftime('%d/%m/%Y') }}</h3>
+    <h3>💳 Tipo de dinero que entra — {{ selected_date.strftime('%d/%m/%Y') }}</h3>
     <p class="muted" style="font-size:.85rem;margin-bottom:1rem">
-      Detalle de todos los pagos recibidos en este día, organizados por método de pago
+      Clasificacion de pagos del dia por efectivo, nequi y cuentas.
     </p>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem;margin-bottom:1rem">
       <div class="card" style="background:#f0fdf4;padding:1rem;border:2px solid #22c55e">
@@ -92,14 +93,14 @@
       
       <div class="card" style="background:#eff6ff;padding:1rem;border:2px solid #3b82f6">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-          <div class="muted" style="font-weight:600">🏦 Transferencias</div>
-          <div style="font-size:1.3rem;font-weight:700;color:#2563eb">COP {{ '{:,.0f}'.format(transfer_income|int) }}</div>
+          <div class="muted" style="font-weight:600">📲 Nequi</div>
+          <div style="font-size:1.3rem;font-weight:700;color:#2563eb">COP {{ '{:,.0f}'.format(nequi_income|int) }}</div>
         </div>
-        {% if transfer_payments %}
+        {% if nequi_payments %}
         <div style="font-size:.8rem;color:#6b7280">
-          <strong>{{ transfer_payments|length }}</strong> transferencia{% if transfer_payments|length != 1 %}s{% endif %}:
+          <strong>{{ nequi_payments|length }}</strong> pago{% if nequi_payments|length != 1 %}s{% endif %} por nequi:
           <div style="max-height:120px;overflow-y:auto;margin-top:.5rem">
-            {% for p in transfer_payments %}
+            {% for p in nequi_payments %}
             <div style="padding:.25rem;border-bottom:1px solid #e5e7eb">
               <strong>{{ p.sale.client.name }}</strong> — COP {{ '{:,.0f}'.format(p.amount|int) }}
             </div>
@@ -107,20 +108,20 @@
           </div>
         </div>
         {% else %}
-        <div class="muted" style="font-size:.8rem">Sin transferencias</div>
+        <div class="muted" style="font-size:.8rem">Sin pagos por nequi</div>
         {% endif %}
       </div>
       
       <div class="card" style="background:#fef3c7;padding:1rem;border:2px solid #f59e0b">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-          <div class="muted" style="font-weight:600">📝 Crédito</div>
-          <div style="font-size:1.3rem;font-weight:700;color:#f59e0b">COP {{ '{:,.0f}'.format(credit_income|int) }}</div>
+          <div class="muted" style="font-weight:600">🏦 Cuentas</div>
+          <div style="font-size:1.3rem;font-weight:700;color:#f59e0b">COP {{ '{:,.0f}'.format(account_income|int) }}</div>
         </div>
-        {% if credit_payments %}
+        {% if account_payments %}
         <div style="font-size:.8rem;color:#6b7280">
-          <strong>{{ credit_payments|length }}</strong> pago{% if credit_payments|length != 1 %}s{% endif %}:
+          <strong>{{ account_payments|length }}</strong> pago{% if account_payments|length != 1 %}s{% endif %} por cuenta:
           <div style="max-height:120px;overflow-y:auto;margin-top:.5rem">
-            {% for p in credit_payments %}
+            {% for p in account_payments %}
             <div style="padding:.25rem;border-bottom:1px solid #e5e7eb">
               <strong>{{ p.sale.client.name }}</strong> — COP {{ '{:,.0f}'.format(p.amount|int) }}
             </div>
@@ -128,30 +129,20 @@
           </div>
         </div>
         {% else %}
-        <div class="muted" style="font-size:.8rem">Sin pagos a crédito</div>
+        <div class="muted" style="font-size:.8rem">Sin pagos por cuentas</div>
         {% endif %}
       </div>
     </div>
   </div>
 
   <div class="card" style="margin-bottom:1.5rem">
-    <h3>Estado de caja (ventas del día) — {{ selected_date.strftime('%d/%m/%Y') }}</h3>
+    <h3>Resumen comercial del dia — {{ selected_date.strftime('%d/%m/%Y') }}</h3>
     <p class="muted" style="font-size:.85rem;margin-bottom:1rem">
-      Distribución de las ventas creadas en este día por método de pago
+      Valor total vendido en ventas creadas en esta fecha.
     </p>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
-      <div class="card" style="background:#f0fdf4;padding:1rem;border:1px solid #bbf7d0">
-        <div class="muted">Efectivo</div>
-        <div style="font-size:1.5rem;font-weight:700;color:#16a34a">COP {{ '{:,.0f}'.format(cash_total|int) }}</div>
-      </div>
-      <div class="card" style="background:#eff6ff;padding:1rem;border:1px solid #bfdbfe">
-        <div class="muted">Transferencias</div>
-        <div style="font-size:1.5rem;font-weight:700;color:#2563eb">COP {{ '{:,.0f}'.format(transfer_total|int) }}</div>
-      </div>
-      <div class="card" style="background:#fff5f5;padding:1rem;border:1px solid #fed7d7">
-        <div class="muted">Crédito</div>
-        <div style="font-size:1.5rem;font-weight:700;color:#dc2626">COP {{ '{:,.0f}'.format(credit_total|int) }}</div>
-      </div>
+    <div class="card" style="background:#f8fafc;padding:1rem;border:1px solid #cbd5e1">
+      <div class="muted">Total vendido del dia</div>
+      <div style="font-size:1.7rem;font-weight:700;color:#0f172a">COP {{ '{:,.0f}'.format(total_sales_today|int) }}</div>
     </div>
   </div>
 
