@@ -1,0 +1,101 @@
+name: Build Windows Installer
+
+# Genera un instalador autoejecutable (.exe) de CellSite para Windows.
+# El instalador resultante se puede copiar a una USB y ejecutar en cualquier
+# equipo Windows sin necesidad de tener Python instalado.
+#
+# Se dispara:
+#   - Manualmente desde la pestaña "Actions" (workflow_dispatch)
+#   - Automaticamente al crear un tag con formato v* (ej: v1.0.0), lo que
+#     ademas publica el instalador como asset de un GitHub Release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version del instalador (ej: 1.0.0)'
+        required: false
+        default: '0.0.0-dev'
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Determinar version del build
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $ver = "${{ github.ref_name }}" -replace '^v',''
+          } else {
+            $ver = "${{ github.event.inputs.version }}"
+            if ([string]::IsNullOrWhiteSpace($ver)) { $ver = "0.0.0-dev" }
+          }
+          echo "Version resuelta: $ver"
+          echo "version=$ver" >> $env:GITHUB_OUTPUT
+
+      - name: Instalar dependencias de Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Empaquetar aplicacion con PyInstaller (onedir)
+        shell: pwsh
+        run: |
+          pyinstaller `
+            --onedir `
+            --windowed `
+            --noconfirm `
+            --name CellSite `
+            --add-data "templates;templates" `
+            --add-data "static;static" `
+            --hidden-import werkzeug.security `
+            --hidden-import flask_sqlalchemy `
+            app.py
+
+      - name: Preparar carpeta de datos y archivos adicionales
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "dist\CellSite\data" | Out-Null
+          Copy-Item DATOS_UBICACION.txt "dist\CellSite\" -ErrorAction SilentlyContinue
+          Copy-Item README.md "dist\CellSite\" -ErrorAction SilentlyContinue
+
+      - name: Instalar Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Compilar instalador con Inno Setup
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ steps.version.outputs.version }} installer.iss
+
+      - name: Subir instalador como artefacto del workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: CellSite-Installer-Windows-${{ steps.version.outputs.version }}
+          path: installer_output/CellSite_Setup.exe
+          if-no-files-found: error
+
+      - name: Publicar Release con el instalador
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer_output/CellSite_Setup.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

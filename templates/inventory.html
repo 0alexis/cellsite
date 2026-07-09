@@ -124,7 +124,13 @@
   </div>
 
   <div class="card">
-    <h3>Equipos registrados</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:.6rem">
+      <h3 style="margin:0">Equipos registrados</h3>
+      <div class="view-toggle" id="inventory-view-toggle" role="group" aria-label="Cambiar tipo de vista">
+        <button type="button" class="view-toggle-btn" id="view-toggle-list" data-view="list">☰ Lista</button>
+        <button type="button" class="view-toggle-btn" id="view-toggle-grid" data-view="grid">▦ Cuadrícula</button>
+      </div>
+    </div>
     {% if items %}
     <div class="inventory-filters" style="margin:.3rem 0 .9rem 0;display:flex;gap:.6rem;flex-wrap:wrap;align-items:end">
       <label style="min-width:220px;flex:1">Bloque / Contenedor<br>
@@ -258,6 +264,68 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
+
+    <div class="inventory-grid" id="inventory-grid-view">
+      {% for item in items %}
+      <div class="inventory-card"
+          data-block="{{ (item.container.name if item.container else '')|lower }}"
+          data-imei="{{ (item.imei or '')|lower }} {{ (item.imei_secondary or '')|lower }}"
+          data-name="{{ (item.model or '')|lower }} {{ (assigned_clients.get(item.id) or '')|lower }} {{ (item.color or '')|lower }}"
+          data-status="{{ (item.status or '')|lower }}">
+        <div class="inventory-card-header">
+          <span class="inventory-card-id">#{{ item.id }}</span>
+          {% if item.status == 'disponible' %}
+            <span style="background:#dcfce7;color:#166534;padding:.2rem .5rem;border-radius:999px;font-size:.75rem;font-weight:600">Disponible</span>
+          {% else %}
+            <span style="background:#fee2e2;color:#991b1b;padding:.2rem .5rem;border-radius:999px;font-size:.75rem;font-weight:600">Vendido</span>
+          {% endif %}
+        </div>
+        <strong class="inventory-card-title">{{ item.model or 'Sin modelo' }}</strong>
+        <div class="muted" style="font-size:.8rem">{{ item.device_type }}{% if item.color %} • {{ item.color }}{% endif %}</div>
+
+        <div class="inventory-card-body">
+          <div><span class="muted">IMEI/Serie:</span> {{ item.imei }}</div>
+          {% if item.imei_secondary %}<div><span class="muted">IMEI 2:</span> {{ item.imei_secondary }}</div>{% endif %}
+          <div><span class="muted">Factura:</span> {{ item.invoice_number or '—' }}</div>
+          <div><span class="muted">Contenedor:</span> {{ item.container.name if item.container else '—' }}</div>
+          {% if 'ver_precio_compra' in user_perms %}
+          <div><span class="muted">Precio compra:</span> <strong>COP {{ '{:,.0f}'.format(item.purchase_price|int) }}</strong></div>
+          {% endif %}
+          <div><span class="muted">Precio venta:</span> <strong>COP {{ '{:,.0f}'.format(item.price|int) }}</strong></div>
+          <div><span class="muted">Asignado a:</span> {{ assigned_clients.get(item.id) or '—' }}</div>
+        </div>
+
+        <div class="inventory-card-footer">
+          {% if item.status == 'disponible' %}
+          <form
+            method="post"
+            action="{{ url_for('move_inventory_item', item_id=item.id) }}"
+            class="move-form"
+            data-item-label="#{{ item.id }} {{ item.model or item.imei }}"
+            data-from-container="{{ item.container.name if item.container else 'Sin contenedor' }}">
+            <select name="target_container_id" required class="move-control">
+              <option value="">Destino...</option>
+              {% for container in containers %}
+              {% if not item.container_id or container.id != item.container_id %}
+              <option value="{{ container.id }}">{{ container.name }}</option>
+              {% endif %}
+              {% endfor %}
+            </select>
+            <input type="text" name="move_note" placeholder="Nota" class="move-control">
+            <button class="btn btn-outline move-control" type="submit">Trasladar</button>
+          </form>
+          {% else %}
+            {% set inv = invoice_info.get(item.id) %}
+            {% if inv and inv.paid %}
+            <a class="btn btn-outline move-control" href="{{ url_for('invoice_pdf_product', sale_id=inv.sale_id, product_id=inv.product_id) }}">Descargar factura</a>
+            {% else %}
+            <span class="muted">No aplica</span>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
     </div>
     {% else %}
     <p class="muted" style="text-align:center;padding:1rem">No hay equipos en inventario todavia.</p>
@@ -432,6 +500,7 @@
     const quickFilterCount = document.getElementById('quick-filter-count');
     const quickClearFilters = document.getElementById('quick-clear-filters');
     const inventoryRows = document.querySelectorAll('.inventory-row');
+    const inventoryCards = document.querySelectorAll('.inventory-card');
     const singleMoveForms = document.querySelectorAll('.move-form');
     const transferModal = document.getElementById('transfer-confirm-modal');
     const transferModalTitle = document.getElementById('transfer-modal-title');
@@ -445,6 +514,40 @@
     const transferModalConfirm = document.getElementById('transfer-modal-confirm');
     let resolveTransferModal = null;
 
+    const viewToggleList = document.getElementById('view-toggle-list');
+    const viewToggleGrid = document.getElementById('view-toggle-grid');
+    const listViewContainer = document.querySelector('.table-scroll');
+    const gridViewContainer = document.getElementById('inventory-grid-view');
+    const INVENTORY_VIEW_KEY = 'cellsite_inventory_view_mode';
+
+    function setInventoryView(mode) {
+      const isGrid = mode === 'grid';
+      if (listViewContainer) listViewContainer.style.display = isGrid ? 'none' : '';
+      if (gridViewContainer) gridViewContainer.style.display = isGrid ? '' : 'none';
+      if (viewToggleList) viewToggleList.classList.toggle('active', !isGrid);
+      if (viewToggleGrid) viewToggleGrid.classList.toggle('active', isGrid);
+      try {
+        localStorage.setItem(INVENTORY_VIEW_KEY, isGrid ? 'grid' : 'list');
+      } catch (e) {
+        // localStorage no disponible, ignorar
+      }
+    }
+
+    if (viewToggleList) {
+      viewToggleList.addEventListener('click', function () { setInventoryView('list'); });
+    }
+    if (viewToggleGrid) {
+      viewToggleGrid.addEventListener('click', function () { setInventoryView('grid'); });
+    }
+
+    let savedView = 'list';
+    try {
+      savedView = localStorage.getItem(INVENTORY_VIEW_KEY) || 'list';
+    } catch (e) {
+      savedView = 'list';
+    }
+    setInventoryView(savedView);
+
     function normalizeText(value) {
       return (value || '')
         .toString()
@@ -455,24 +558,29 @@
     }
 
     function applyQuickFilters() {
-      if (!inventoryRows.length) return;
+      if (!inventoryRows.length && !inventoryCards.length) return;
       const block = normalizeText(quickFilterBlock ? quickFilterBlock.value : '');
       const imei = normalizeText(quickFilterImei ? quickFilterImei.value : '');
       const name = normalizeText(quickFilterName ? quickFilterName.value : '');
 
+      function matches(el) {
+        const elBlock = normalizeText(el.dataset.block || '');
+        const elImei = normalizeText(el.dataset.imei || '');
+        const elName = normalizeText(el.dataset.name || '');
+        const matchesBlock = !block || elBlock.includes(block);
+        const matchesImei = !imei || elImei.includes(imei);
+        const matchesName = !name || elName.includes(name);
+        return matchesBlock && matchesImei && matchesName;
+      }
+
       let visibleCount = 0;
       inventoryRows.forEach((row) => {
-        const rowBlock = normalizeText(row.dataset.block || '');
-        const rowImei = normalizeText(row.dataset.imei || '');
-        const rowName = normalizeText(row.dataset.name || '');
-
-        const matchesBlock = !block || rowBlock.includes(block);
-        const matchesImei = !imei || rowImei.includes(imei);
-        const matchesName = !name || rowName.includes(name);
-        const isVisible = matchesBlock && matchesImei && matchesName;
-
+        const isVisible = matches(row);
         row.style.display = isVisible ? '' : 'none';
         if (isVisible) visibleCount += 1;
+      });
+      inventoryCards.forEach((card) => {
+        card.style.display = matches(card) ? '' : 'none';
       });
 
       if (quickFilterCount) {

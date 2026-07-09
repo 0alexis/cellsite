@@ -54,6 +54,15 @@
       Variables disponibles: {empresa}, {venta_id}, {fecha}, {cliente}, {cliente_id_nit}, {cliente_telefono}, {cliente_email}, {cliente_direccion}, {tipo}, {imei}, {imei2}, {modelo}, {color}, {factura}, {precio}, {estado}.
     </p>
 
+    <div class="form-row">
+      <label>Formato editable de recibo de abono (solo administrador, usa variables entre llaves)<br>
+        <textarea name="receipt_template" rows="8" placeholder="Ej:\nRecibo #{recibo_id}\nVenta #{venta_id}\nCliente: {cliente}\nAtendido por: {atendido_por}\nDispositivo(s): {dispositivos}\nMonto abonado: {monto}\nMetodo: {metodo}\nSaldo restante: {saldo}">{{ config.receipt_template or '' }}</textarea>
+      </label>
+    </div>
+    <p class="muted" style="font-size:.85rem;margin-top:-.4rem">
+      Variables disponibles: {empresa}, {recibo_id}, {venta_id}, {fecha}, {cliente}, {cliente_id_nit}, {cliente_telefono}, {cliente_email}, {cliente_direccion}, {atendido_por}, {dispositivos}, {monto}, {metodo}, {cuentas}, {nota}, {saldo}.
+    </p>
+
     <div class="form-row" style="display:block">
       <label style="display:block;margin-bottom:.45rem">Cuentas para transferencias (configuración individual)</label>
       <div id="accounts-list" style="display:flex;flex-direction:column;gap:.5rem">

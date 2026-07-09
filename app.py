@@ -198,6 +198,7 @@ class Payment(db.Model):
     account_from = db.Column(db.String(200))
     account_to = db.Column(db.String(200))
     note = db.Column(db.String(300))
+    username = db.Column(db.String(80))
 
 
 class Return(db.Model):
@@ -219,6 +220,7 @@ class Config(db.Model):
     company_address = db.Column(db.String(300))
     invoice_description = db.Column(db.Text)
     invoice_template = db.Column(db.Text)
+    receipt_template = db.Column(db.Text)
     payment_accounts = db.Column(db.Text)
     logo_path = db.Column(db.String(300))  # ruta relativa a la imagen del logo
 
@@ -346,6 +348,8 @@ def ensure_schema_compatibility():
         db.session.execute(db.text('ALTER TABLE payment ADD COLUMN account_from VARCHAR(200)'))
     if 'account_to' not in payment_columns:
         db.session.execute(db.text('ALTER TABLE payment ADD COLUMN account_to VARCHAR(200)'))
+    if 'username' not in payment_columns:
+        db.session.execute(db.text('ALTER TABLE payment ADD COLUMN username VARCHAR(80)'))
 
     inventory_columns = {
         row[1]
@@ -373,6 +377,8 @@ def ensure_schema_compatibility():
         db.session.execute(db.text('ALTER TABLE config ADD COLUMN invoice_description TEXT'))
     if 'invoice_template' not in config_columns:
         db.session.execute(db.text('ALTER TABLE config ADD COLUMN invoice_template TEXT'))
+    if 'receipt_template' not in config_columns:
+        db.session.execute(db.text('ALTER TABLE config ADD COLUMN receipt_template TEXT'))
     if 'payment_accounts' not in config_columns:
         db.session.execute(db.text('ALTER TABLE config ADD COLUMN payment_accounts TEXT'))
     db.session.commit()
@@ -429,6 +435,7 @@ def init_db():
                 company_address='',
                 invoice_description='',
                 invoice_template='',
+                receipt_template='',
                 payment_accounts=''
             )
             db.session.add(cfg)
@@ -601,7 +608,12 @@ def inventory():
             if existing_imei.status == 'disponible':
                 flash(f'Ese IMEI/Serie ya existe en inventario y está disponible (#{existing_imei.id} — {existing_imei.model or existing_imei.imei}).', 'error')
             else:
-                flash(f'imei_vendido:{existing_imei.id}', 'imei_vendido')
+                flash(
+                    f'Ese IMEI/Serie ya existe en inventario y fue vendido anteriormente '
+                    f'(#{existing_imei.id} — {existing_imei.model or existing_imei.imei}). '
+                    'No se guardó un equipo nuevo: usa la opción de reintegro para volver a ingresarlo.',
+                    'error'
+                )
             return redirect(url_for('inventory'))
         if imei_secondary and Inventory.query.filter(
             db.or_(Inventory.imei == imei_secondary, Inventory.imei_secondary == imei_secondary)
@@ -1192,7 +1204,8 @@ def new_payment():
         method=method,
         account_from=account_from or None,
         account_to=account_to or None,
-        note=note
+        note=note,
+        username=session.get('user')
     )
     sale.balance = float(sale.balance) - amount
     # Actualizar status según el balance
@@ -1228,7 +1241,8 @@ def new_payment():
                 method=method or 'abono excedente',
                 account_from=account_from or None,
                 account_to=account_to or None,
-                note=f"Abono excedente de venta #{sale.id}"
+                note=f"Abono excedente de venta #{sale.id}",
+                username=session.get('user')
             )
             db.session.add(extra_pay)
             update_paid_products(pending, do_commit=False)
@@ -1324,7 +1338,8 @@ def auto_payment():
             method=method or 'abono automático',
             account_from=account_from or None,
             account_to=account_to or None,
-            note=f"{note or 'Abono automático'} (distribuido de COP {amount:,.0f})"
+            note=f"{note or 'Abono automático'} (distribuido de COP {amount:,.0f})",
+            username=session.get('user')
         )
         db.session.add(pay)
         
@@ -1358,7 +1373,8 @@ def auto_payment():
             method=method or 'abono automático',
             account_from=account_from or None,
             account_to=account_to or None,
-            note=f"{note or 'Abono automático - saldo a favor'} (sobrante de COP {amount:,.0f})"
+            note=f"{note or 'Abono automático - saldo a favor'} (sobrante de COP {amount:,.0f})",
+            username=session.get('user')
         )
         db.session.add(extra_pay)
         last_sale.balance = float(last_sale.balance) - remaining_amount
@@ -1575,6 +1591,7 @@ def settings():
         cfg.company_address = request.form.get('company_address')
         cfg.invoice_description = request.form.get('invoice_description')
         cfg.invoice_template = request.form.get('invoice_template')
+        cfg.receipt_template = request.form.get('receipt_template')
         posted_accounts = [
             value.strip()
             for value in request.form.getlist('payment_accounts[]')
@@ -1992,6 +2009,8 @@ def generate_payment_receipt_pdf(sale, payment):
         ['Recibo #', str(payment.id), 'Fecha:', payment.date.strftime('%d/%m/%Y %H:%M') if payment.date else ''],
         ['Venta #', str(sale.id), 'Cliente:', sale.client.name],
         ['ID/NIT:', sale.client.id_nit or '—', 'Tel:', sale.client.phone or '—'],
+        ['Email:', sale.client.email or '—', 'Dirección:', sale.client.address or '—'],
+        ['Atendido por:', payment.username or '—', '', ''],
     ]
     receipt_table = Table(receipt_data, colWidths=[2*cm, 4*cm, 2*cm, 4*cm])
     receipt_table.setStyle(TableStyle([
@@ -2003,32 +2022,92 @@ def generate_payment_receipt_pdf(sale, payment):
     story.append(receipt_table)
     story.append(Spacer(1, 0.3*cm))
 
+    # Dispositivo(s) asociados a la venta abonada
+    devices_list = []
+    if sale.products:
+        story.append(Paragraph("<b>Dispositivo(s) asociado(s):</b>", styles['Heading3']))
+        device_rows = [['Equipo', 'IMEI/Serial', 'Bloque / Local', 'Estado']]
+        for product in sale.products:
+            block_name = '—'
+            if product.inventory and product.inventory.container:
+                block_name = product.inventory.container.name
+            imei_text = product.imei or '—'
+            if product.imei_secondary:
+                imei_text += f" / {product.imei_secondary}"
+            estado = 'Pagado' if product.paid else 'Pendiente'
+            device_rows.append([product.model or product.device_type or '—', imei_text, block_name, estado])
+            devices_list.append(f"{product.model or product.device_type or 'Equipo'} (IMEI {imei_text}) - Bloque: {block_name}")
+
+        device_table = Table(device_rows, colWidths=[3.5*cm, 4.5*cm, 3*cm, 2*cm])
+        device_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8f5e9')),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ]))
+        story.append(device_table)
+        story.append(Spacer(1, 0.3*cm))
+
     story.append(Paragraph("<b>Detalle del abono:</b>", styles['Heading3']))
     account_detail = '—'
     if payment.method == 'cuentas' and (payment.account_from or payment.account_to):
         account_detail = f"{payment.account_from or '—'} → {payment.account_to or '—'}"
 
-    detail_data = [
-        ['Concepto', 'Detalle'],
-        ['Monto abonado', f"COP {float(payment.amount):,.0f}"],
-        ['Método de pago', payment.method or '—'],
-        ['Cuentas', account_detail],
-        ['Nota', payment.note or '—'],
-        ['Saldo restante de la venta', f"COP {float(sale.balance):,.0f}" if sale.balance >= 0 else f"Saldo a favor COP {abs(float(sale.balance)):,.0f}"],
-    ]
-    detail_table = Table(detail_data, colWidths=[5*cm, 6*cm])
-    detail_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563EB')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 5),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 9),
-    ]))
-    story.append(detail_table)
-    story.append(Spacer(1, 0.5*cm))
+    template_text = (cfg.receipt_template or '').strip() if cfg else ''
+    if template_text:
+        context = {
+            'empresa': (cfg.company_name or 'Mi Local') if cfg else 'Mi Local',
+            'recibo_id': str(payment.id),
+            'venta_id': str(sale.id),
+            'fecha': payment.date.strftime('%d/%m/%Y %H:%M') if payment.date else '',
+            'cliente': sale.client.name or '',
+            'cliente_id_nit': sale.client.id_nit or '',
+            'cliente_telefono': sale.client.phone or '',
+            'cliente_email': sale.client.email or '',
+            'cliente_direccion': sale.client.address or '',
+            'atendido_por': payment.username or '—',
+            'dispositivos': '; '.join(devices_list) if devices_list else '—',
+            'monto': f"COP {float(payment.amount):,.0f}",
+            'metodo': payment.method or '—',
+            'cuentas': account_detail,
+            'nota': payment.note or '—',
+            'saldo': f"COP {float(sale.balance):,.0f}" if sale.balance >= 0 else f"Saldo a favor COP {abs(float(sale.balance)):,.0f}",
+        }
+
+        rendered = template_text
+        for key, value in context.items():
+            rendered = rendered.replace(f'{{{key}}}', str(value))
+
+        story.append(Paragraph('<b>Formato de recibo:</b>', styles['Heading3']))
+        for line in rendered.splitlines():
+            clean_line = escape(line).replace('  ', '&nbsp;&nbsp;')
+            story.append(Paragraph(clean_line if clean_line else '&nbsp;', styles['Normal']))
+        story.append(Spacer(1, 0.5*cm))
+    else:
+        detail_data = [
+            ['Concepto', 'Detalle'],
+            ['Monto abonado', f"COP {float(payment.amount):,.0f}"],
+            ['Método de pago', payment.method or '—'],
+            ['Cuentas', account_detail],
+            ['Nota', payment.note or '—'],
+            ['Saldo restante de la venta', f"COP {float(sale.balance):,.0f}" if sale.balance >= 0 else f"Saldo a favor COP {abs(float(sale.balance)):,.0f}"],
+        ]
+        detail_table = Table(detail_data, colWidths=[5*cm, 6*cm])
+        detail_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563EB')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 5),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ]))
+        story.append(detail_table)
+        story.append(Spacer(1, 0.5*cm))
 
     if cfg and cfg.invoice_description:
         story.append(Paragraph("<b>Descripcion / garantia:</b>", styles['Heading3']))
