@@ -17,13 +17,66 @@ body{
 	position:sticky;
 	top:0;
 	overflow-y:auto;
+	overflow-x:hidden;
 	background:linear-gradient(180deg,#0f172a,#0b1220);
 	color:#fff;
 	padding:1.25rem;
 	display:flex;
-	flex-direction:column
+	flex-direction:column;
+	transition:margin-left .2s ease,opacity .15s ease;
 }
-.brand{font-weight:700;font-size:1.1rem;margin-bottom:1rem}
+.sidebar-header{
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	gap:.5rem;
+	margin-bottom:1rem;
+}
+.sidebar-toggle-btn{
+	background:rgba(255,255,255,0.08);
+	border:1px solid rgba(255,255,255,0.15);
+	color:#fff;
+	border-radius:6px;
+	width:32px;
+	height:32px;
+	flex:0 0 auto;
+	cursor:pointer;
+	font-size:1rem;
+	line-height:1;
+	transition:background .15s ease;
+}
+.sidebar-toggle-btn:hover{
+	background:rgba(255,255,255,0.18);
+}
+.sidebar-show-btn{
+	display:none;
+	position:fixed;
+	top:1rem;
+	left:1rem;
+	z-index:20;
+	background:#0f172a;
+	color:#fff;
+	border:1px solid rgba(255,255,255,0.2);
+	border-radius:8px;
+	width:40px;
+	height:40px;
+	cursor:pointer;
+	font-size:1.1rem;
+	box-shadow:0 6px 18px rgba(2,6,23,0.25);
+	transition:background .15s ease;
+}
+.sidebar-show-btn:hover{
+	background:#1e293b;
+}
+.app-layout.sidebar-collapsed .sidebar{
+	margin-left:-240px;
+	opacity:0;
+	pointer-events:none;
+}
+.app-layout.sidebar-collapsed .sidebar-show-btn{
+	display:block;
+}
+.brand{font-weight:700;font-size:1.1rem;margin-bottom:0}
 .nav-link{color:rgba(255,255,255,0.9);display:block;padding:.45rem .5rem;border-radius:6px;text-decoration:none;transition:background .15s}
 .nav-link:hover{background:rgba(255,255,255,0.1)}
 .nav-link:hover{background:rgba(255,255,255,0.04)}
@@ -111,6 +164,16 @@ textarea{min-height:90px}
 	gap:1rem;
 }
 
+.inventory-grid.size-small{
+	grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+	gap:.6rem;
+}
+
+.inventory-grid.size-large{
+	grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+	gap:1.35rem;
+}
+
 .inventory-card{
 	background:#fff;
 	border:1px solid #e2e8f0;
@@ -120,6 +183,18 @@ textarea{min-height:90px}
 	flex-direction:column;
 	gap:.35rem;
 	transition:box-shadow .15s ease,border-color .15s ease;
+}
+
+.inventory-grid.size-small .inventory-card{
+	padding:.55rem;
+	gap:.2rem;
+	border-radius:8px;
+}
+
+.inventory-grid.size-large .inventory-card{
+	padding:1.25rem;
+	gap:.5rem;
+	border-radius:12px;
 }
 
 .inventory-card:hover{
@@ -139,9 +214,15 @@ textarea{min-height:90px}
 	font-weight:600;
 }
 
+.inventory-grid.size-small .inventory-card-id{font-size:.7rem}
+.inventory-grid.size-large .inventory-card-id{font-size:.9rem}
+
 .inventory-card-title{
 	font-size:1rem;
 }
+
+.inventory-grid.size-small .inventory-card-title{font-size:.85rem}
+.inventory-grid.size-large .inventory-card-title{font-size:1.2rem}
 
 .inventory-card-body{
 	display:flex;
@@ -153,6 +234,9 @@ textarea{min-height:90px}
 	margin-top:.15rem;
 }
 
+.inventory-grid.size-small .inventory-card-body{font-size:.72rem;gap:.1rem;padding-top:.3rem}
+.inventory-grid.size-large .inventory-card-body{font-size:.98rem;gap:.3rem;padding-top:.6rem}
+
 .inventory-card-footer{
 	border-top:1px solid #eef2f7;
 	padding-top:.55rem;
@@ -162,9 +246,25 @@ textarea{min-height:90px}
 	gap:.35rem;
 }
 
+.inventory-grid.size-small .inventory-card-footer{padding-top:.35rem;margin-top:.2rem;gap:.2rem}
+.inventory-grid.size-large .inventory-card-footer{padding-top:.7rem;margin-top:.45rem;gap:.45rem}
+
 .inventory-card-footer .move-form{
 	max-width:none;
 }
+
+.table-scroll.size-small .table th,
+.table-scroll.size-small .table td{
+	padding:.3rem .4rem;
+	font-size:.78rem;
+}
+
+.table-scroll.size-large .table th,
+.table-scroll.size-large .table td{
+	padding:.85rem 1rem;
+	font-size:1.02rem;
+}
+
 
 .dashboard-grid{
 	display:grid;

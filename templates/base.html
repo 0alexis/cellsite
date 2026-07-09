@@ -7,9 +7,12 @@
     <link rel="stylesheet" href="/static/style.css">
   </head>
   <body>
-    <div class="app-layout">
-      <aside class="sidebar">
-        
+    <div class="app-layout" id="app-layout">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span class="brand">{{ brand_name or 'CellSite' }}</span>
+          <button type="button" class="sidebar-toggle-btn" id="sidebar-collapse-btn" title="Ocultar menú" aria-label="Ocultar menú">☰</button>
+        </div>
         <nav>
           <a class="nav-link" href="{{ url_for('index') }}">📊 Dashboard</a>
           {% if 'ver_inventario' in user_perms %}
@@ -42,6 +45,7 @@
           <a class="nav-link" style="border-top:1px solid rgba(255,255,255,0.1);padding-top:.5rem" href="{{ url_for('logout') }}">🚪 Cerrar sesión</a>
         </div>
       </aside>
+      <button type="button" class="sidebar-show-btn" id="sidebar-show-btn" title="Mostrar menú" aria-label="Mostrar menú">☰</button>
       <section class="content">
         <div class="container">
           {% with messages = get_flashed_messages(with_categories=true) %}
@@ -57,6 +61,39 @@
         </div>
       </section>
     </div>
+    <script>
+      (function () {
+        const SIDEBAR_KEY = 'cellsite_sidebar_collapsed';
+        const appLayout = document.getElementById('app-layout');
+        const collapseBtn = document.getElementById('sidebar-collapse-btn');
+        const showBtn = document.getElementById('sidebar-show-btn');
+
+        function setSidebarCollapsed(collapsed) {
+          if (!appLayout) return;
+          appLayout.classList.toggle('sidebar-collapsed', collapsed);
+          try {
+            localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0');
+          } catch (e) {
+            // localStorage no disponible, ignorar
+          }
+        }
+
+        let savedCollapsed = false;
+        try {
+          savedCollapsed = localStorage.getItem(SIDEBAR_KEY) === '1';
+        } catch (e) {
+          savedCollapsed = false;
+        }
+        setSidebarCollapsed(savedCollapsed);
+
+        if (collapseBtn) {
+          collapseBtn.addEventListener('click', function () { setSidebarCollapsed(true); });
+        }
+        if (showBtn) {
+          showBtn.addEventListener('click', function () { setSidebarCollapsed(false); });
+        }
+      })();
+    </script>
     <script>
       // Formatear campos de moneda COP con separador de miles
       function formatCurrency(input) {

@@ -69,35 +69,6 @@
         </label>
         <label><span id="imei_label_text">IMEI / Serie *</span><br><input type="text" id="imei" name="imei" required placeholder="Ej: 351234567890123"></label>
       </div>
-      <div id="imei-check-msg" style="display:none;margin:-.3rem 0 .75rem 0"></div>
-      <div id="reintegration-panel" style="display:none;background:#fff7ed;border:1.5px solid #fb923c;border-radius:8px;padding:1rem;margin-bottom:.75rem">
-        <strong style="color:#c2410c">⚠️ Equipo encontrado como vendido</strong>
-        <p id="reintegration-desc" style="margin:.4rem 0 .75rem 0;font-size:.9rem;color:#0f172a"></p>
-        <form id="reintegration-form" method="post" action="">
-          <div class="form-row">
-            <label>Precio de compra (reintegro) *<br>
-              <input type="text" name="purchase_price" required class="currency-input" placeholder="Ej: 1.800.000">
-            </label>
-            <label>Precio de venta nuevo *<br>
-              <input type="text" name="price" required class="currency-input" placeholder="Ej: 2.500.000">
-            </label>
-          </div>
-          <div class="form-row">
-            <label>Contenedor *<br>
-              <select name="container_id" required>
-                {% for container in containers %}
-                <option value="{{ container.id }}">{{ container.name }}</option>
-                {% endfor %}
-              </select>
-            </label>
-            <label>Nota de reintegro<br>
-              <input type="text" name="note" placeholder="Ej: Devuelto por cliente, falla de pantalla...">
-            </label>
-          </div>
-          <button class="btn btn-primary" type="submit" style="background:#ea580c;border-color:#ea580c">Reintegrar al inventario</button>
-          <button class="btn btn-outline" type="button" onclick="closeReintegrationPanel()" style="margin-left:.5rem">Cancelar</button>
-        </form>
-      </div>
       <div class="form-row" id="imei_secondary_row" style="display:none">
         <label>IMEI 2 *<br><input type="text" id="imei_secondary" name="imei_secondary" placeholder="Ej: 351234567890124"></label>
       </div>
@@ -126,9 +97,16 @@
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:.6rem">
       <h3 style="margin:0">Equipos registrados</h3>
-      <div class="view-toggle" id="inventory-view-toggle" role="group" aria-label="Cambiar tipo de vista">
-        <button type="button" class="view-toggle-btn" id="view-toggle-list" data-view="list">☰ Lista</button>
-        <button type="button" class="view-toggle-btn" id="view-toggle-grid" data-view="grid">▦ Cuadrícula</button>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+        <div class="view-toggle" id="inventory-size-toggle" role="group" aria-label="Cambiar tamaño de vista">
+          <button type="button" class="view-toggle-btn" id="view-size-small" data-size="small">Pequeña</button>
+          <button type="button" class="view-toggle-btn" id="view-size-medium" data-size="medium">Mediana</button>
+          <button type="button" class="view-toggle-btn" id="view-size-large" data-size="large">Grande</button>
+        </div>
+        <div class="view-toggle" id="inventory-view-toggle" role="group" aria-label="Cambiar tipo de vista">
+          <button type="button" class="view-toggle-btn" id="view-toggle-list" data-view="list">☰ Lista</button>
+          <button type="button" class="view-toggle-btn" id="view-toggle-grid" data-view="grid">▦ Cuadrícula</button>
+        </div>
       </div>
     </div>
     {% if items %}
@@ -396,6 +374,50 @@
     </div>
   </div>
 
+  <div id="duplicate-id-modal" class="transfer-modal" aria-hidden="true">
+    <div class="transfer-modal-card" role="dialog" aria-modal="true" aria-labelledby="duplicate-id-title">
+      <div class="transfer-modal-header">
+        <h3 id="duplicate-id-title">⚠️ Identificador ya registrado</h3>
+        <button type="button" class="transfer-modal-close" id="duplicate-id-close" aria-label="Cerrar">×</button>
+      </div>
+      <p id="duplicate-id-subtitle" class="transfer-modal-subtitle"></p>
+
+      <div id="duplicate-id-metrics" class="transfer-modal-metrics"></div>
+      <p id="duplicate-id-extra" class="transfer-modal-extra"></p>
+
+      <form id="duplicate-id-reintegrate-form" method="post" action="" style="display:none">
+        <div class="form-row">
+          <label>Precio de compra (reintegro) *<br>
+            <input type="text" name="purchase_price" required class="currency-input" placeholder="Ej: 1.800.000">
+          </label>
+          <label>Precio de venta nuevo *<br>
+            <input type="text" name="price" required class="currency-input" placeholder="Ej: 2.500.000">
+          </label>
+        </div>
+        <div class="form-row">
+          <label>Contenedor *<br>
+            <select name="container_id" required>
+              {% for container in containers %}
+              <option value="{{ container.id }}">{{ container.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Nota de reintegro<br>
+            <input type="text" name="note" placeholder="Ej: Devuelto por cliente, falla de pantalla...">
+          </label>
+        </div>
+        <div class="transfer-modal-actions">
+          <button type="button" class="btn btn-outline" id="duplicate-id-cancel-reintegrate">Cerrar</button>
+          <button class="btn btn-primary" type="submit" style="background:#ea580c;border-color:#ea580c">Reintegrar al inventario</button>
+        </div>
+      </form>
+
+      <div id="duplicate-id-actions-only" class="transfer-modal-actions">
+        <button type="button" class="btn btn-primary" id="duplicate-id-ok">Entendido</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     function updateIdentityFieldsByType() {
       const typeSelect = document.getElementById('device_type');
@@ -433,62 +455,118 @@
       updateIdentityFieldsByType();
     }
 
-    // ----- IMEI check en tiempo real -----
-    let imeiCheckTimeout = null;
+    // ----- Verificacion de IMEI/Serie duplicado (IMEI 1 e IMEI 2) -----
     const imeiInput = document.getElementById('imei');
-    const imeiMsg = document.getElementById('imei-check-msg');
-    const reintegrationPanel = document.getElementById('reintegration-panel');
-    const reintegrationForm = document.getElementById('reintegration-form');
-    const reintegrationDesc = document.getElementById('reintegration-desc');
-    const addItemForm = document.querySelector('.card form[method="post"]:not(#bulk-move-form):not(#reintegration-form)');
+    const imeiSecondaryInputCheck = document.getElementById('imei_secondary');
+    const imeiLabelTextEl = document.getElementById('imei_label_text');
 
-    function closeReintegrationPanel() {
-      reintegrationPanel.style.display = 'none';
-      imeiMsg.style.display = 'none';
+    const duplicateModal = document.getElementById('duplicate-id-modal');
+    const duplicateModalSubtitle = document.getElementById('duplicate-id-subtitle');
+    const duplicateModalMetrics = document.getElementById('duplicate-id-metrics');
+    const duplicateModalExtra = document.getElementById('duplicate-id-extra');
+    const duplicateModalClose = document.getElementById('duplicate-id-close');
+    const duplicateModalOk = document.getElementById('duplicate-id-ok');
+    const duplicateModalActionsOnly = document.getElementById('duplicate-id-actions-only');
+    const duplicateReintegrateForm = document.getElementById('duplicate-id-reintegrate-form');
+    const duplicateCancelReintegrate = document.getElementById('duplicate-id-cancel-reintegrate');
+
+    const fieldCheckTimeouts = {};
+
+    function renderDuplicateMetric(label, value, tone) {
+      const safeTone = tone || 'neutral';
+      return '<div class="transfer-metric tone-' + safeTone + '">' +
+        '<span class="metric-label">' + label + '</span>' +
+        '<strong class="metric-value">' + value + '</strong>' +
+      '</div>';
     }
-    window.closeReintegrationPanel = closeReintegrationPanel;
 
-    function checkImeiExists(value) {
-      if (!value || value.length < 5) {
-        imeiMsg.style.display = 'none';
-        reintegrationPanel.style.display = 'none';
-        return;
+    function openDuplicateModal() {
+      if (!duplicateModal) return;
+      duplicateModal.classList.add('is-open');
+      duplicateModal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('modal-open');
+    }
+
+    function closeDuplicateModal() {
+      if (!duplicateModal) return;
+      duplicateModal.classList.remove('is-open');
+      duplicateModal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('modal-open');
+      if (duplicateReintegrateForm) duplicateReintegrateForm.style.display = 'none';
+      if (duplicateModalActionsOnly) duplicateModalActionsOnly.style.display = 'none';
+    }
+
+    function showDuplicateFound(data, fieldLabel) {
+      const isAvailable = data.status === 'disponible';
+      duplicateModalSubtitle.textContent = fieldLabel + ' ya registrado en el sistema';
+
+      duplicateModalMetrics.innerHTML = [
+        renderDuplicateMetric('Identificador', data.imei, 'info'),
+        renderDuplicateMetric('Estado actual', isAvailable ? 'Disponible' : 'Vendido', isAvailable ? 'warning' : 'success'),
+        renderDuplicateMetric('Equipo', data.model || 'Sin modelo', 'neutral'),
+        renderDuplicateMetric('Contenedor', data.container || 'Sin contenedor', 'neutral'),
+      ].join('');
+
+      if (isAvailable) {
+        duplicateModalExtra.textContent = 'Este identificador ya pertenece a un equipo disponible en inventario. ' +
+          'No puedes registrar otro equipo con el mismo IMEI/Serie; verifica el numero o busca el equipo existente.';
+        duplicateReintegrateForm.style.display = 'none';
+        duplicateModalActionsOnly.style.display = 'flex';
+      } else {
+        duplicateModalExtra.textContent = 'Este equipo fue vendido anteriormente. Puedes reintegrarlo al inventario ' +
+          'con un nuevo precio de compra y venta, o cerrar esta ventana si fue un error.';
+        duplicateReintegrateForm.action = '/inventory/reintegrate/' + data.item_id;
+        duplicateReintegrateForm.style.display = 'block';
+        duplicateModalActionsOnly.style.display = 'none';
       }
+
+      openDuplicateModal();
+    }
+
+    function checkIdentifierExists(value, fieldKey, fieldLabel) {
+      if (!value || value.length < 4) return;
       fetch('/inventory/check-imei?imei=' + encodeURIComponent(value))
         .then(r => r.json())
         .then(data => {
-          if (!data.found) {
-            imeiMsg.style.display = 'none';
-            reintegrationPanel.style.display = 'none';
-            return;
-          }
-          if (data.status === 'disponible') {
-            imeiMsg.style.display = 'block';
-            imeiMsg.innerHTML = '<span style="background:#fee2e2;color:#991b1b;padding:.35rem .65rem;border-radius:6px;font-size:.87rem;display:inline-block">' +
-              '⛔ IMEI ya existe y está <strong>disponible</strong> en inventario — ' + (data.model || data.imei) + ' [' + data.container + ']</span>';
-            reintegrationPanel.style.display = 'none';
-          } else {
-            imeiMsg.style.display = 'none';
-            reintegrationPanel.style.display = 'block';
-            reintegrationDesc.textContent = 'IMEI: ' + data.imei + ' — ' + (data.model || 'sin modelo') +
-              (data.device_type ? ' (' + data.device_type + ')' : '') +
-              '. El equipo fue vendido y puede ser reintegrado con un nuevo precio de compra.';
-            reintegrationForm.action = '/inventory/reintegrate/' + data.item_id;
-          }
+          if (!data.found) return;
+          showDuplicateFound(data, fieldLabel);
         })
         .catch(() => {});
     }
 
-    if (imeiInput) {
-      imeiInput.addEventListener('input', function () {
-        clearTimeout(imeiCheckTimeout);
-        imeiCheckTimeout = setTimeout(() => checkImeiExists(this.value.trim()), 400);
+    function wireIdentifierField(input, fieldKey, getLabel) {
+      if (!input) return;
+      input.addEventListener('input', function () {
+        clearTimeout(fieldCheckTimeouts[fieldKey]);
+        const value = this.value.trim();
+        fieldCheckTimeouts[fieldKey] = setTimeout(() => checkIdentifierExists(value, fieldKey, getLabel()), 450);
       });
-      imeiInput.addEventListener('blur', function () {
-        clearTimeout(imeiCheckTimeout);
-        checkImeiExists(this.value.trim());
+      input.addEventListener('blur', function () {
+        clearTimeout(fieldCheckTimeouts[fieldKey]);
+        checkIdentifierExists(this.value.trim(), fieldKey, getLabel());
       });
     }
+
+    wireIdentifierField(imeiInput, 'imei', function () {
+      return imeiLabelTextEl ? imeiLabelTextEl.textContent.replace(' *', '') : 'IMEI/Serie';
+    });
+    wireIdentifierField(imeiSecondaryInputCheck, 'imei_secondary', function () {
+      return 'IMEI 2';
+    });
+
+    if (duplicateModalClose) duplicateModalClose.addEventListener('click', closeDuplicateModal);
+    if (duplicateModalOk) duplicateModalOk.addEventListener('click', closeDuplicateModal);
+    if (duplicateCancelReintegrate) duplicateCancelReintegrate.addEventListener('click', closeDuplicateModal);
+    if (duplicateModal) {
+      duplicateModal.addEventListener('click', function (event) {
+        if (event.target === duplicateModal) closeDuplicateModal();
+      });
+    }
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && duplicateModal && duplicateModal.classList.contains('is-open')) {
+        closeDuplicateModal();
+      }
+    });
 
     const selectAll = document.getElementById('select-all-available');
     const bulkChecks = document.querySelectorAll('.bulk-item-checkbox');
@@ -520,17 +598,21 @@
     const gridViewContainer = document.getElementById('inventory-grid-view');
     const INVENTORY_VIEW_KEY = 'cellsite_inventory_view_mode';
 
+    let currentInventoryView = 'list';
+
     function setInventoryView(mode) {
       const isGrid = mode === 'grid';
+      currentInventoryView = isGrid ? 'grid' : 'list';
       if (listViewContainer) listViewContainer.style.display = isGrid ? 'none' : '';
       if (gridViewContainer) gridViewContainer.style.display = isGrid ? '' : 'none';
       if (viewToggleList) viewToggleList.classList.toggle('active', !isGrid);
       if (viewToggleGrid) viewToggleGrid.classList.toggle('active', isGrid);
       try {
-        localStorage.setItem(INVENTORY_VIEW_KEY, isGrid ? 'grid' : 'list');
+        localStorage.setItem(INVENTORY_VIEW_KEY, currentInventoryView);
       } catch (e) {
         // localStorage no disponible, ignorar
       }
+      updateSizeToggleButtons();
     }
 
     if (viewToggleList) {
@@ -546,6 +628,64 @@
     } catch (e) {
       savedView = 'list';
     }
+
+    // ----- Tamaño de vista (pequeña/mediana/grande), independiente para lista y cuadrícula -----
+    const sizeToggleButtons = document.querySelectorAll('#inventory-size-toggle .view-toggle-btn');
+    const INVENTORY_GRID_SIZE_KEY = 'cellsite_inventory_grid_size';
+    const INVENTORY_LIST_SIZE_KEY = 'cellsite_inventory_list_size';
+    const SIZE_CLASSES = ['size-small', 'size-medium', 'size-large'];
+
+    function readStoredSize(key) {
+      try {
+        return localStorage.getItem(key) || 'medium';
+      } catch (e) {
+        return 'medium';
+      }
+    }
+
+    function storeSize(key, size) {
+      try {
+        localStorage.setItem(key, size);
+      } catch (e) {
+        // localStorage no disponible, ignorar
+      }
+    }
+
+    function applySizeClass(el, size) {
+      if (!el) return;
+      SIZE_CLASSES.forEach(function (cls) { el.classList.remove(cls); });
+      el.classList.add('size-' + size);
+    }
+
+    let gridSize = readStoredSize(INVENTORY_GRID_SIZE_KEY);
+    let listSize = readStoredSize(INVENTORY_LIST_SIZE_KEY);
+    applySizeClass(gridViewContainer, gridSize);
+    applySizeClass(listViewContainer, listSize);
+
+    function updateSizeToggleButtons() {
+      const activeSize = currentInventoryView === 'grid' ? gridSize : listSize;
+      sizeToggleButtons.forEach(function (btn) {
+        btn.classList.toggle('active', btn.dataset.size === activeSize);
+      });
+    }
+
+    function setInventorySize(size) {
+      if (currentInventoryView === 'grid') {
+        gridSize = size;
+        applySizeClass(gridViewContainer, size);
+        storeSize(INVENTORY_GRID_SIZE_KEY, size);
+      } else {
+        listSize = size;
+        applySizeClass(listViewContainer, size);
+        storeSize(INVENTORY_LIST_SIZE_KEY, size);
+      }
+      updateSizeToggleButtons();
+    }
+
+    sizeToggleButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () { setInventorySize(btn.dataset.size); });
+    });
+
     setInventoryView(savedView);
 
     function normalizeText(value) {
