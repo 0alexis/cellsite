@@ -61,6 +61,9 @@
         </div>
       </section>
     </div>
+    <div id="global-loading-overlay" class="loading-overlay" aria-hidden="true">
+      <div class="loading-spinner"></div>
+    </div>
     <script>
       (function () {
         const SIDEBAR_KEY = 'cellsite_sidebar_collapsed';
@@ -95,6 +98,133 @@
       })();
     </script>
     <script>
+      // ----- Infraestructura AJAX comun: evita recargar la pagina completa -----
+      // al enviar formularios. Muestra un spinner de carga y reemplaza solo el
+      // contenido de .container con la respuesta del servidor.
+      (function () {
+        const overlay = document.getElementById('global-loading-overlay');
+
+        function showLoadingOverlay() {
+          if (overlay) overlay.classList.add('is-visible');
+        }
+        function hideLoadingOverlay() {
+          if (overlay) overlay.classList.remove('is-visible');
+        }
+
+        function replacePageContent(html) {
+          try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newContainer = doc.querySelector('.container');
+            const currentContainer = document.querySelector('.container');
+            if (newContainer && currentContainer) {
+              currentContainer.innerHTML = newContainer.innerHTML;
+            }
+          } catch (e) {
+            // si algo falla al parsear, no hacemos nada mas (evita romper la pagina)
+          }
+          document.body.classList.remove('modal-open');
+          reinitCommon();
+          if (typeof window.reinitPageScripts === 'function') {
+            window.reinitPageScripts();
+          }
+        }
+
+        async function submitAjaxForm(form) {
+          showLoadingOverlay();
+          try {
+            const method = (form.getAttribute('method') || 'GET').toUpperCase();
+            const action = form.getAttribute('action') || window.location.href;
+            const formData = new FormData(form);
+            let response;
+            if (method === 'GET') {
+              const params = new URLSearchParams(formData);
+              const sep = action.includes('?') ? '&' : '?';
+              response = await fetch(action + sep + params.toString(), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+              });
+            } else {
+              response = await fetch(action, {
+                method: method,
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+              });
+            }
+            const html = await response.text();
+            replacePageContent(html);
+          } catch (e) {
+            alert('Ocurrio un error de red. Intenta nuevamente.');
+          } finally {
+            hideLoadingOverlay();
+          }
+        }
+
+        async function submitAjaxRequest(url, options) {
+          showLoadingOverlay();
+          try {
+            const response = await fetch(url, Object.assign({
+              headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }, options || {}));
+            const html = await response.text();
+            replacePageContent(html);
+          } catch (e) {
+            alert('Ocurrio un error de red. Intenta nuevamente.');
+          } finally {
+            hideLoadingOverlay();
+          }
+        }
+
+        function initAjaxForms() {
+          document.querySelectorAll('form.ajax-form').forEach(function (form) {
+            if (form.dataset.ajaxBound === '1') return;
+            form.dataset.ajaxBound = '1';
+            form.addEventListener('submit', function (event) {
+              event.preventDefault();
+              submitAjaxForm(form);
+            });
+          });
+        }
+
+        function initCurrencyInputs() {
+          const processedForms = new Set();
+          document.querySelectorAll('.currency-input').forEach(function (input) {
+            if (input.dataset.currencyBound !== '1') {
+              input.dataset.currencyBound = '1';
+              input.addEventListener('input', function () {
+                formatCurrency(this);
+              });
+            }
+            const form = input.closest('form');
+            if (form && !processedForms.has(form) && form.dataset.currencySubmitBound !== '1') {
+              form.dataset.currencySubmitBound = '1';
+              processedForms.add(form);
+              form.addEventListener('submit', function () {
+                form.querySelectorAll('.currency-input').forEach(function (inp) {
+                  inp.value = unformatCurrency(inp.value);
+                });
+              });
+            }
+          });
+        }
+
+        function reinitCommon() {
+          initCurrencyInputs();
+          initAjaxForms();
+        }
+
+        window.CellSiteApp = {
+          showLoadingOverlay,
+          hideLoadingOverlay,
+          submitAjaxForm,
+          submitAjaxRequest,
+          replacePageContent,
+          reinitCommon
+        };
+
+        document.addEventListener('DOMContentLoaded', reinitCommon);
+      })();
+    </script>
+    <script>
       // Formatear campos de moneda COP con separador de miles
       function formatCurrency(input) {
         let value = input.value.replace(/\D/g, ''); // Eliminar todo excepto números
@@ -107,32 +237,7 @@
       function unformatCurrency(value) {
         return value.replace(/\D/g, ''); // Devolver solo números
       }
-
-      // Aplicar formato a todos los inputs con clase currency-input
-      document.addEventListener('DOMContentLoaded', function() {
-        const currencyInputs = document.querySelectorAll('.currency-input');
-        const processedForms = new Set();
-        
-        currencyInputs.forEach(function(input) {
-          // Formatear al escribir
-          input.addEventListener('input', function() {
-            formatCurrency(this);
-          });
-          
-          // Agregar listener de submit al formulario (una sola vez por formulario)
-          const form = input.closest('form');
-          if (form && !processedForms.has(form)) {
-            processedForms.add(form);
-            form.addEventListener('submit', function(e) {
-              // Limpiar todos los currency-inputs de este formulario
-              const formCurrencyInputs = form.querySelectorAll('.currency-input');
-              formCurrencyInputs.forEach(function(inp) {
-                inp.value = unformatCurrency(inp.value);
-              });
-            });
-          }
-        });
-      });
     </script>
   </body>
 </html>
+

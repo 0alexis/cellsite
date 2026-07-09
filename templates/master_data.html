@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+  <div>
+    <h2 style="margin:0 0 .25rem 0">Correcciones maestras</h2>
+    <p class="muted" style="margin:0;font-size:.9rem">Herramienta administrativa para corregir valores puntuales con trazabilidad.</p>
+  </div>
+  <a class="btn btn-outline" href="{{ url_for('settings') }}">Volver a configuración</a>
+</div>
+
+<div class="card" style="border:2px solid #f59e0b;background:#fffbeb">
+  <strong>Uso restringido:</strong>
+  <span class="muted">cada cambio queda registrado en auditoria con usuario, tabla, ID, valor anterior, valor nuevo y motivo.</span>
+</div>
+
+<div class="card" style="max-width:840px">
+  <form method="post" id="master-data-form">
+    <div class="form-row">
+      <label>Tabla *<br>
+        <select name="table" id="master-table" required>
+          <option value="">Selecciona...</option>
+          {% for key, config in master_models.items() %}
+          <option value="{{ key }}">{{ config.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>ID del registro *<br>
+        <input type="text" name="record_id" required inputmode="numeric" placeholder="Ej: 123">
+      </label>
+    </div>
+
+    <div class="form-row">
+      <label>Campo *<br>
+        <select name="field" id="master-field" required>
+          <option value="">Primero selecciona una tabla</option>
+        </select>
+      </label>
+      <label>Valor nuevo *<br>
+        <input type="text" name="new_value" id="master-new-value" required placeholder="Nuevo valor">
+      </label>
+    </div>
+
+    <div id="master-field-help" class="muted" style="font-size:.85rem;margin:-.35rem 0 .75rem 0"></div>
+
+    <label>Motivo del cambio *<br>
+      <textarea name="reason" required rows="3" placeholder="Ej: Corrección por devolución registrada mal / ajuste validado con recibo...">
+      </textarea>
+    </label>
+
+    <div style="margin-top:1rem;display:flex;gap:.6rem;flex-wrap:wrap">
+      <button class="btn btn-primary" type="submit">Aplicar cambio maestro</button>
+      <a class="btn btn-outline" href="{{ url_for('audit_log') }}">Ver auditoría</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Cambios maestros recientes</h3>
+  {% if recent_changes %}
+  <table class="table">
+    <thead>
+      <tr><th>Fecha</th><th>Usuario</th><th>Recurso</th><th>Detalle</th></tr>
+    </thead>
+    <tbody>
+      {% for change in recent_changes %}
+      <tr>
+        <td class="muted">{{ change.timestamp.strftime('%d/%m/%Y %H:%M') if change.timestamp else '—' }}</td>
+        <td>{{ change.username or '—' }}</td>
+        <td>{{ change.resource_type }} #{{ change.resource_id }}</td>
+        <td class="muted">{{ change.detail }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No hay cambios maestros registrados.</p>
+  {% endif %}
+</div>
+
+<script>
+  const masterModels = {{ master_models|tojson }};
+  const tableSelect = document.getElementById('master-table');
+  const fieldSelect = document.getElementById('master-field');
+  const valueInput = document.getElementById('master-new-value');
+  const help = document.getElementById('master-field-help');
+
+  function fieldHelpText(field) {
+    if (!field) return '';
+    if (field.type === 'currency') return 'Monto positivo. Puedes escribir 1500000 o 1.500.000.';
+    if (field.type === 'signed_currency') return 'Permite valores negativos para saldo a favor. Ej: -500.000.';
+    if (field.type === 'choice') return 'Valores permitidos: ' + (field.choices || []).join(', ') + '.';
+    if (field.type === 'boolean') return 'Usa si/no, true/false o 1/0.';
+    if (field.type === 'fk') return 'Ingresa el ID existente del registro relacionado.';
+    if (field.type === 'nullable_fk') return 'Ingresa un ID existente o deja vacio para quitar la relación.';
+    if (field.type === 'nullable_text') return 'Puedes dejarlo vacio para guardar NULL.';
+    return '';
+  }
+
+  function updateFields() {
+    const table = masterModels[tableSelect.value];
+    fieldSelect.innerHTML = '';
+    if (!table) {
+      fieldSelect.innerHTML = '<option value="">Primero selecciona una tabla</option>';
+      help.textContent = '';
+      return;
+    }
+    fieldSelect.insertAdjacentHTML('beforeend', '<option value="">Selecciona...</option>');
+    Object.keys(table.fields).forEach((fieldName) => {
+      const field = table.fields[fieldName];
+      const option = document.createElement('option');
+      option.value = fieldName;
+      option.textContent = field.label + ' (' + fieldName + ')';
+      fieldSelect.appendChild(option);
+    });
+    updateHelp();
+  }
+
+  function updateHelp() {
+    const table = masterModels[tableSelect.value];
+    const field = table && table.fields ? table.fields[fieldSelect.value] : null;
+    help.textContent = fieldHelpText(field);
+  }
+
+  if (tableSelect) tableSelect.addEventListener('change', updateFields);
+  if (fieldSelect) fieldSelect.addEventListener('change', updateHelp);
+</script>
+{% endblock %}

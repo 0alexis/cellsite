@@ -37,7 +37,7 @@
 
   <div class="card" style="margin-bottom:1rem">
     <h3 style="margin-bottom:.6rem">Contenedores</h3>
-    <form method="post" action="{{ url_for('new_inventory_container') }}" style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:end">
+    <form method="post" action="{{ url_for('new_inventory_container') }}" class="ajax-form" style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:end">
       <label style="min-width:220px;flex:1">Nombre contenedor *<br>
         <input type="text" name="name" required placeholder="Ej: Contenedor A">
       </label>
@@ -55,7 +55,7 @@
 
   <div class="card">
     <h3 style="margin-bottom:.8rem">Agregar equipo</h3>
-    <form method="post">
+    <form method="post" class="ajax-form">
       <div class="form-row">
         <label>Tipo de dispositivo *<br>
           <select name="device_type" id="device_type" required>
@@ -167,6 +167,7 @@
           <th>Asignado a</th>
           <th>Estado</th>
           <th>Mover</th>
+          <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -238,6 +239,26 @@
               {% endif %}
             {% endif %}
           </td>
+          <td class="item-actions-cell">
+            {% if item.status == 'disponible' and 'agregar_inventario' in user_perms %}
+            <button type="button" class="btn btn-outline btn-edit-item" title="Editar equipo"
+              data-item-id="{{ item.id }}"
+              data-device-type="{{ item.device_type or '' }}"
+              data-imei="{{ item.imei or '' }}"
+              data-imei-secondary="{{ item.imei_secondary or '' }}"
+              data-model="{{ item.model or '' }}"
+              data-color="{{ item.color or '' }}"
+              data-invoice-number="{{ item.invoice_number or '' }}"
+              data-container-id="{{ item.container_id or '' }}"
+              data-purchase-price="{{ item.purchase_price|int }}"
+              data-price="{{ item.price|int }}">✏️</button>
+            {% endif %}
+            {% if item.status == 'disponible' and 'eliminar_inventario' in user_perms %}
+            <button type="button" class="btn btn-outline btn-delete-item" title="Eliminar equipo"
+              data-item-id="{{ item.id }}"
+              data-item-label="#{{ item.id }} {{ item.model or item.imei }}">🗑️</button>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -301,6 +322,26 @@
             <span class="muted">No aplica</span>
             {% endif %}
           {% endif %}
+          <div class="item-actions-cell" style="display:flex;gap:.4rem">
+            {% if item.status == 'disponible' and 'agregar_inventario' in user_perms %}
+            <button type="button" class="btn btn-outline btn-edit-item" title="Editar equipo"
+              data-item-id="{{ item.id }}"
+              data-device-type="{{ item.device_type or '' }}"
+              data-imei="{{ item.imei or '' }}"
+              data-imei-secondary="{{ item.imei_secondary or '' }}"
+              data-model="{{ item.model or '' }}"
+              data-color="{{ item.color or '' }}"
+              data-invoice-number="{{ item.invoice_number or '' }}"
+              data-container-id="{{ item.container_id or '' }}"
+              data-purchase-price="{{ item.purchase_price|int }}"
+              data-price="{{ item.price|int }}">✏️ Editar</button>
+            {% endif %}
+            {% if item.status == 'disponible' and 'eliminar_inventario' in user_perms %}
+            <button type="button" class="btn btn-outline btn-delete-item" title="Eliminar equipo"
+              data-item-id="{{ item.id }}"
+              data-item-label="#{{ item.id }} {{ item.model or item.imei }}">🗑️ Eliminar</button>
+            {% endif %}
+          </div>
         </div>
       </div>
       {% endfor %}
@@ -385,7 +426,7 @@
       <div id="duplicate-id-metrics" class="transfer-modal-metrics"></div>
       <p id="duplicate-id-extra" class="transfer-modal-extra"></p>
 
-      <form id="duplicate-id-reintegrate-form" method="post" action="" style="display:none">
+      <form id="duplicate-id-reintegrate-form" method="post" action="" class="ajax-form" style="display:none">
         <div class="form-row">
           <label>Precio de compra (reintegro) *<br>
             <input type="text" name="purchase_price" required class="currency-input" placeholder="Ej: 1.800.000">
@@ -418,17 +459,57 @@
     </div>
   </div>
 
+  <div id="edit-item-modal" class="transfer-modal" aria-hidden="true">
+    <div class="transfer-modal-card" role="dialog" aria-modal="true" aria-labelledby="edit-item-title">
+      <div class="transfer-modal-header">
+        <h3 id="edit-item-title">Editar equipo</h3>
+        <button type="button" class="transfer-modal-close" id="edit-item-close" aria-label="Cerrar">×</button>
+      </div>
+      <form id="edit-item-form" method="post" action="" class="ajax-form">
+        <div class="form-row">
+          <label>Tipo de dispositivo *<br>
+            <select name="device_type" id="edit_device_type" required>
+              <option value="Telefono">Telefono</option>
+              <option value="Apple Watch">Apple Watch</option>
+              <option value="Mac">Mac</option>
+              <option value="Tablet">Tablet</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </label>
+          <label><span id="edit_imei_label_text">IMEI / Serie *</span><br><input type="text" id="edit_imei" name="imei" required></label>
+        </div>
+        <div class="form-row" id="edit_imei_secondary_row" style="display:none">
+          <label>IMEI 2 *<br><input type="text" id="edit_imei_secondary" name="imei_secondary"></label>
+        </div>
+        <div class="form-row">
+          <label>Modelo<br><input type="text" id="edit_model" name="model"></label>
+          <label>Color<br><input type="text" id="edit_color" name="color"></label>
+          <label>Contenedor *<br>
+            <select name="container_id" id="edit_container_id" required>
+              {% for container in containers %}
+              <option value="{{ container.id }}">{{ container.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>No. factura<br><input type="text" id="edit_invoice_number" name="invoice_number"></label>
+          {% if 'ver_precio_compra' in user_perms %}
+          <label>Precio de compra (COP) *<br><input type="text" id="edit_purchase_price" name="purchase_price" required class="currency-input"></label>
+          {% endif %}
+          <label>Precio de venta (COP) *<br><input type="text" id="edit_price" name="price" required class="currency-input"></label>
+        </div>
+        <div class="transfer-modal-actions">
+          <button type="button" class="btn btn-outline" id="edit-item-cancel">Cancelar</button>
+          <button class="btn btn-primary" type="submit">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
-    function updateIdentityFieldsByType() {
-      const typeSelect = document.getElementById('device_type');
-      const imeiLabelText = document.getElementById('imei_label_text');
-      const imeiInput = document.getElementById('imei');
-      const imeiSecondaryRow = document.getElementById('imei_secondary_row');
-      const imeiSecondaryInput = document.getElementById('imei_secondary');
-      if (!typeSelect || !imeiLabelText || !imeiInput || !imeiSecondaryRow || !imeiSecondaryInput) return;
-
-      const selectedType = (typeSelect.value || '').trim();
-
+    function initInventoryPage() {
+    function applyIdentityLabelLogic(selectedType, imeiLabelText, imeiInput, imeiSecondaryRow, imeiSecondaryInput) {
       if (selectedType === 'Telefono') {
         imeiLabelText.textContent = 'IMEI 1 *';
         imeiInput.placeholder = 'Ej: 351234567890123';
@@ -439,12 +520,25 @@
         imeiInput.placeholder = 'Ej: C39XXXXXXX';
         imeiSecondaryRow.style.display = 'none';
         imeiSecondaryInput.required = false;
-        imeiSecondaryInput.value = '';
       } else {
         imeiLabelText.textContent = 'IMEI / Serie *';
         imeiInput.placeholder = 'Ej: 351234567890123';
         imeiSecondaryRow.style.display = 'none';
         imeiSecondaryInput.required = false;
+      }
+    }
+
+    function updateIdentityFieldsByType() {
+      const typeSelect = document.getElementById('device_type');
+      const imeiLabelText = document.getElementById('imei_label_text');
+      const imeiInput = document.getElementById('imei');
+      const imeiSecondaryRow = document.getElementById('imei_secondary_row');
+      const imeiSecondaryInput = document.getElementById('imei_secondary');
+      if (!typeSelect || !imeiLabelText || !imeiInput || !imeiSecondaryRow || !imeiSecondaryInput) return;
+
+      const selectedType = (typeSelect.value || '').trim();
+      applyIdentityLabelLogic(selectedType, imeiLabelText, imeiInput, imeiSecondaryRow, imeiSecondaryInput);
+      if (selectedType !== 'Telefono') {
         imeiSecondaryInput.value = '';
       }
     }
@@ -562,10 +656,86 @@
         if (event.target === duplicateModal) closeDuplicateModal();
       });
     }
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && duplicateModal && duplicateModal.classList.contains('is-open')) {
-        closeDuplicateModal();
-      }
+
+    // ----- Editar equipo -----
+    const editModal = document.getElementById('edit-item-modal');
+    const editForm = document.getElementById('edit-item-form');
+    const editClose = document.getElementById('edit-item-close');
+    const editCancel = document.getElementById('edit-item-cancel');
+    const editDeviceType = document.getElementById('edit_device_type');
+    const editImeiLabel = document.getElementById('edit_imei_label_text');
+    const editImei = document.getElementById('edit_imei');
+    const editImeiSecondaryRow = document.getElementById('edit_imei_secondary_row');
+    const editImeiSecondary = document.getElementById('edit_imei_secondary');
+    const editModel = document.getElementById('edit_model');
+    const editColor = document.getElementById('edit_color');
+    const editContainerId = document.getElementById('edit_container_id');
+    const editInvoiceNumber = document.getElementById('edit_invoice_number');
+    const editPurchasePrice = document.getElementById('edit_purchase_price');
+    const editPrice = document.getElementById('edit_price');
+
+    function openEditModal() {
+      if (!editModal) return;
+      editModal.classList.add('is-open');
+      editModal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('modal-open');
+    }
+
+    function closeEditModal() {
+      if (!editModal) return;
+      editModal.classList.remove('is-open');
+      editModal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('modal-open');
+    }
+
+    function updateEditIdentityFields() {
+      if (!editDeviceType || !editImeiLabel || !editImei || !editImeiSecondaryRow || !editImeiSecondary) return;
+      applyIdentityLabelLogic((editDeviceType.value || '').trim(), editImeiLabel, editImei, editImeiSecondaryRow, editImeiSecondary);
+    }
+
+    if (editDeviceType) {
+      editDeviceType.addEventListener('change', updateEditIdentityFields);
+    }
+    if (editClose) editClose.addEventListener('click', closeEditModal);
+    if (editCancel) editCancel.addEventListener('click', closeEditModal);
+    if (editModal) {
+      editModal.addEventListener('click', function (event) {
+        if (event.target === editModal) closeEditModal();
+      });
+    }
+
+    document.querySelectorAll('.btn-edit-item').forEach(function (btn) {
+      if (btn.dataset.bound === '1') return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', function () {
+        if (!editForm) return;
+        const d = this.dataset;
+        editForm.action = '/inventory/' + d.itemId + '/edit';
+        if (editDeviceType) editDeviceType.value = d.deviceType || 'Telefono';
+        if (editImei) editImei.value = d.imei || '';
+        if (editImeiSecondary) editImeiSecondary.value = d.imeiSecondary || '';
+        if (editModel) editModel.value = d.model || '';
+        if (editColor) editColor.value = d.color || '';
+        if (editInvoiceNumber) editInvoiceNumber.value = d.invoiceNumber || '';
+        if (editContainerId) editContainerId.value = d.containerId || '';
+        if (editPurchasePrice) editPurchasePrice.value = Number(d.purchasePrice || 0).toLocaleString('es-CO');
+        if (editPrice) editPrice.value = Number(d.price || 0).toLocaleString('es-CO');
+        updateEditIdentityFields();
+        openEditModal();
+      });
+    });
+
+    document.querySelectorAll('.btn-delete-item').forEach(function (btn) {
+      if (btn.dataset.bound === '1') return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', function () {
+        const label = this.dataset.itemLabel || 'este equipo';
+        if (!window.confirm('¿Eliminar ' + label + ' del inventario? Esta acción no se puede deshacer.')) return;
+        const id = this.dataset.itemId;
+        if (window.CellSiteApp) {
+          window.CellSiteApp.submitAjaxRequest('/inventory/' + id + '/delete', { method: 'POST' });
+        }
+      });
     });
 
     const selectAll = document.getElementById('select-all-available');
@@ -812,11 +982,31 @@
         }
       });
     }
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && transferModal && transferModal.classList.contains('is-open')) {
-        closeTransferModal(false);
-      }
-    });
+
+    // Listener de Escape unico para todos los modales de esta pagina: se registra
+    // una sola vez (aunque initInventoryPage se vuelva a ejecutar tras cada accion
+    // AJAX) y siempre lee las referencias mas recientes desde window.__inventoryModalRefs.
+    window.__inventoryModalRefs = {
+      duplicateModal, closeDuplicateModal,
+      editModal, closeEditModal,
+      transferModal, closeTransferModal
+    };
+    if (!window.__inventoryEscBound) {
+      window.__inventoryEscBound = true;
+      document.addEventListener('keydown', function (event) {
+        if (event.key !== 'Escape') return;
+        const refs = window.__inventoryModalRefs || {};
+        if (refs.duplicateModal && refs.duplicateModal.classList.contains('is-open')) {
+          refs.closeDuplicateModal();
+        }
+        if (refs.editModal && refs.editModal.classList.contains('is-open')) {
+          refs.closeEditModal();
+        }
+        if (refs.transferModal && refs.transferModal.classList.contains('is-open')) {
+          refs.closeTransferModal(false);
+        }
+      });
+    }
 
     singleMoveForms.forEach((form) => {
       form.addEventListener('submit', async function (event) {
@@ -842,8 +1032,8 @@
           extra: 'Vas a mover este equipo de stock al contenedor seleccionado. El traslado quedará registrado en trazabilidad.'
         });
 
-        if (confirmed) {
-          form.submit();
+        if (confirmed && window.CellSiteApp) {
+          window.CellSiteApp.submitAjaxForm(form);
         }
       });
     });
@@ -894,8 +1084,14 @@
           hiddenInputs.appendChild(input);
         });
 
-        bulkForm.submit();
+        if (window.CellSiteApp) {
+          window.CellSiteApp.submitAjaxForm(bulkForm);
+        }
       });
     }
+    }
+
+    initInventoryPage();
+    window.reinitPageScripts = initInventoryPage;
   </script>
 {% endblock %}

@@ -116,6 +116,16 @@
 </div>
 {% endif %}
 
+{% if 'cambios_maestros' in user_perms %}
+<div class="card" style="max-width:700px;margin-top:.85rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+  <div>
+    <h3 style="margin:0 0 .25rem 0">Correcciones maestras</h3>
+    <p class="muted" style="margin:0;font-size:.88rem">Edita valores puntuales de la base de datos con motivo obligatorio y auditoria.</p>
+  </div>
+  <a href="{{ url_for('master_data_changes') }}" class="btn btn-primary">Abrir cambios maestros</a>
+</div>
+{% endif %}
+
 {% if 'ver_auditoria' in user_perms %}
 <div class="card" style="max-width:700px;margin-top:.85rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
   <div>

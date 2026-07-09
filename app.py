@@ -165,7 +165,7 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sale_id = db.Column(db.Integer, db.ForeignKey('sale.id'), nullable=False)
     inventory_id = db.Column(db.Integer, db.ForeignKey('inventory.id'))
-    imei = db.Column(db.String(100), unique=True, nullable=False)
+    imei = db.Column(db.String(100), nullable=False)
     imei_secondary = db.Column(db.String(100))
     device_type = db.Column(db.String(60))
     color = db.Column(db.String(50))
@@ -243,8 +243,9 @@ ROLE_PERMISSIONS = {
         'ver_clientes', 'crear_clientes',
         'ver_ventas', 'crear_ventas', 'ver_pagos', 'registrar_pagos',
         'ver_inventario', 'ver_precio_compra', 'agregar_inventario', 'mover_inventario',
+        'eliminar_inventario',
         'ver_estadisticas', 'exportar_excel',
-        'ver_configuracion', 'gestionar_usuarios', 'ver_auditoria',
+        'ver_configuracion', 'gestionar_usuarios', 'ver_auditoria', 'cambios_maestros',
     },
     'vendedor': {
         'ver_clientes', 'crear_clientes',
@@ -307,6 +308,128 @@ def require_perm(perm):
     return decorator
 
 
+MASTER_DATA_MODELS = {
+    'inventory': {
+        'label': 'Inventario',
+        'model': Inventory,
+        'fields': {
+            'device_type': {'label': 'Tipo de dispositivo', 'type': 'text'},
+            'imei': {'label': 'IMEI / Serie', 'type': 'text'},
+            'imei_secondary': {'label': 'IMEI 2', 'type': 'nullable_text'},
+            'model': {'label': 'Modelo', 'type': 'nullable_text'},
+            'color': {'label': 'Color', 'type': 'nullable_text'},
+            'invoice_number': {'label': 'No. factura', 'type': 'nullable_text'},
+            'purchase_price': {'label': 'Precio compra', 'type': 'currency'},
+            'price': {'label': 'Precio venta', 'type': 'currency'},
+            'status': {'label': 'Estado', 'type': 'choice', 'choices': ['disponible', 'vendido']},
+            'container_id': {'label': 'ID contenedor', 'type': 'fk', 'model': InventoryContainer},
+        },
+    },
+    'sale': {
+        'label': 'Venta',
+        'model': Sale,
+        'fields': {
+            'client_id': {'label': 'ID cliente', 'type': 'fk', 'model': Client},
+            'sale_price': {'label': 'Precio total', 'type': 'currency'},
+            'initial_amount': {'label': 'Pago inicial', 'type': 'currency'},
+            'balance': {'label': 'Saldo', 'type': 'signed_currency'},
+            'status': {'label': 'Estado', 'type': 'choice', 'choices': ['activo', 'pagada', 'saldo a favor', 'devuelto']},
+        },
+    },
+    'product': {
+        'label': 'Producto vendido',
+        'model': Product,
+        'fields': {
+            'sale_id': {'label': 'ID venta', 'type': 'fk', 'model': Sale},
+            'inventory_id': {'label': 'ID inventario', 'type': 'nullable_fk', 'model': Inventory},
+            'imei': {'label': 'IMEI / Serie', 'type': 'text'},
+            'imei_secondary': {'label': 'IMEI 2', 'type': 'nullable_text'},
+            'device_type': {'label': 'Tipo de dispositivo', 'type': 'nullable_text'},
+            'model': {'label': 'Modelo', 'type': 'nullable_text'},
+            'color': {'label': 'Color', 'type': 'nullable_text'},
+            'invoice_number': {'label': 'No. factura', 'type': 'nullable_text'},
+            'purchase_price': {'label': 'Precio compra', 'type': 'currency'},
+            'price': {'label': 'Precio venta', 'type': 'currency'},
+            'paid': {'label': 'Pagado', 'type': 'boolean'},
+        },
+    },
+    'payment': {
+        'label': 'Pago',
+        'model': Payment,
+        'fields': {
+            'sale_id': {'label': 'ID venta', 'type': 'fk', 'model': Sale},
+            'amount': {'label': 'Monto', 'type': 'currency'},
+            'method': {'label': 'Metodo', 'type': 'nullable_text'},
+            'account_from': {'label': 'Cuenta origen', 'type': 'nullable_text'},
+            'account_to': {'label': 'Cuenta destino', 'type': 'nullable_text'},
+            'note': {'label': 'Nota', 'type': 'nullable_text'},
+            'username': {'label': 'Usuario', 'type': 'nullable_text'},
+        },
+    },
+    'client': {
+        'label': 'Cliente',
+        'model': Client,
+        'fields': {
+            'name': {'label': 'Nombre', 'type': 'text'},
+            'id_nit': {'label': 'ID/NIT', 'type': 'nullable_text'},
+            'phone': {'label': 'Telefono', 'type': 'nullable_text'},
+            'email': {'label': 'Email', 'type': 'nullable_text'},
+            'address': {'label': 'Direccion', 'type': 'nullable_text'},
+            'notes': {'label': 'Notas', 'type': 'nullable_text'},
+        },
+    },
+}
+
+
+def parse_master_value(raw_value, field_config):
+    value_type = field_config['type']
+    raw_text = (raw_value or '').strip()
+
+    if value_type == 'text':
+        if not raw_text:
+            raise ValueError('El valor no puede estar vacio.')
+        return raw_text
+    if value_type == 'nullable_text':
+        return raw_text or None
+    if value_type == 'currency':
+        value = parse_currency(raw_text)
+        if value < 0:
+            raise ValueError('El valor no puede ser negativo.')
+        return value
+    if value_type == 'signed_currency':
+        sign = -1 if raw_text.startswith('-') else 1
+        return sign * parse_currency(raw_text)
+    if value_type == 'choice':
+        choices = field_config['choices']
+        if raw_text not in choices:
+            raise ValueError('Valor invalido. Usa: ' + ', '.join(choices))
+        return raw_text
+    if value_type in ('fk', 'nullable_fk'):
+        if not raw_text and value_type == 'nullable_fk':
+            return None
+        try:
+            foreign_id = int(raw_text)
+        except ValueError:
+            raise ValueError('Debes ingresar un ID numerico valido.')
+        if not db.session.get(field_config['model'], foreign_id):
+            raise ValueError(f'No existe un registro relacionado con ID {foreign_id}.')
+        return foreign_id
+    if value_type == 'boolean':
+        normalized = raw_text.lower()
+        if normalized in ('1', 'true', 'si', 'sí', 's', 'yes'):
+            return True
+        if normalized in ('0', 'false', 'no', 'n'):
+            return False
+        raise ValueError('Usa si/no, true/false o 1/0.')
+    raise ValueError('Tipo de campo no soportado.')
+
+
+def stringify_master_value(value):
+    if value is None:
+        return ''
+    return str(value)
+
+
 def log_action(action, resource_type=None, resource_id=None, detail=None):
     user = get_current_user()
     try:
@@ -327,6 +450,50 @@ def log_action(action, resource_type=None, resource_id=None, detail=None):
 
 
 def ensure_schema_compatibility():
+    def product_has_unique_imei_index():
+        for row in db.session.execute(db.text("PRAGMA index_list('product')")).fetchall():
+            index_name = row[1]
+            is_unique = bool(row[2])
+            if not is_unique:
+                continue
+            index_columns = [info[2] for info in db.session.execute(db.text(f"PRAGMA index_info('{index_name}')")).fetchall()]
+            if index_columns == ['imei']:
+                return True
+        return False
+
+    if product_has_unique_imei_index():
+        db.session.execute(db.text('''
+            CREATE TABLE product_new (
+                id INTEGER NOT NULL PRIMARY KEY,
+                sale_id INTEGER NOT NULL,
+                inventory_id INTEGER,
+                imei VARCHAR(100) NOT NULL,
+                imei_secondary VARCHAR(100),
+                device_type VARCHAR(60),
+                color VARCHAR(50),
+                invoice_number VARCHAR(100),
+                model VARCHAR(200),
+                purchase_price NUMERIC(10,2) DEFAULT 0,
+                price NUMERIC(10,2),
+                paid BOOLEAN,
+                FOREIGN KEY(sale_id) REFERENCES sale (id),
+                FOREIGN KEY(inventory_id) REFERENCES inventory (id)
+            )
+        '''))
+        db.session.execute(db.text('''
+            INSERT INTO product_new (
+                id, sale_id, inventory_id, imei, imei_secondary, device_type,
+                color, invoice_number, model, purchase_price, price, paid
+            )
+            SELECT
+                id, sale_id, inventory_id, imei, imei_secondary, device_type,
+                color, invoice_number, model, purchase_price, price, paid
+            FROM product
+        '''))
+        db.session.execute(db.text('DROP TABLE product'))
+        db.session.execute(db.text('ALTER TABLE product_new RENAME TO product'))
+        db.session.commit()
+
     product_columns = {
         row[1]
         for row in db.session.execute(db.text('PRAGMA table_info(product)')).fetchall()
@@ -558,6 +725,9 @@ def inventory():
         default_container = containers[0]
 
     if request.method == 'POST':
+        if not has_perm('agregar_inventario'):
+            flash('No tienes permiso para agregar equipos al inventario.', 'error')
+            return redirect(url_for('inventory'))
         device_type = (request.form.get('device_type') or '').strip()
         imei = (request.form.get('imei') or '').strip()
         imei_secondary = (request.form.get('imei_secondary') or '').strip()
@@ -775,6 +945,116 @@ def check_imei():
         'device_type': found.device_type or '',
         'container': found.container.name if found.container else ''
     })
+
+
+@app.route('/inventory/<int:item_id>/edit', methods=['POST'])
+@require_perm('agregar_inventario')
+def edit_inventory_item(item_id):
+    if not session.get('user'):
+        return redirect(url_for('login'))
+
+    item = Inventory.query.get_or_404(item_id)
+
+    if item.status != 'disponible':
+        flash('No puedes editar un equipo vendido/asignado. Reintégralo al stock antes de cambiar sus valores.', 'error')
+        return redirect(url_for('inventory'))
+
+    device_type = (request.form.get('device_type') or '').strip()
+    imei = (request.form.get('imei') or '').strip()
+    imei_secondary = (request.form.get('imei_secondary') or '').strip()
+    model = (request.form.get('model') or '').strip()
+    color = (request.form.get('color') or '').strip()
+    invoice_number = (request.form.get('invoice_number') or '').strip()
+    container_id_raw = request.form.get('container_id')
+    purchase_price = parse_currency(request.form.get('purchase_price'))
+    price = parse_currency(request.form.get('price'))
+
+    if 'ver_precio_compra' not in get_user_perms():
+        purchase_price = item.purchase_price
+
+    if not device_type:
+        flash('Selecciona el tipo de dispositivo.', 'error')
+        return redirect(url_for('inventory'))
+    if not imei:
+        flash('El IMEI/Serie es obligatorio.', 'error')
+        return redirect(url_for('inventory'))
+    if device_type == 'Telefono':
+        if not imei_secondary:
+            flash('Para teléfonos debes ingresar IMEI 1 e IMEI 2.', 'error')
+            return redirect(url_for('inventory'))
+        if imei_secondary == imei:
+            flash('IMEI 1 e IMEI 2 deben ser diferentes.', 'error')
+            return redirect(url_for('inventory'))
+    else:
+        imei_secondary = None
+    if price <= 0:
+        flash('Ingresa un precio de venta válido mayor a 0.', 'error')
+        return redirect(url_for('inventory'))
+    if 'ver_precio_compra' in get_user_perms() and purchase_price <= 0:
+        flash('Ingresa un precio de compra válido mayor a 0.', 'error')
+        return redirect(url_for('inventory'))
+
+    duplicate_imei = Inventory.query.filter(
+        Inventory.id != item.id,
+        db.or_(Inventory.imei == imei, Inventory.imei_secondary == imei)
+    ).first()
+    if duplicate_imei:
+        flash(f'Ese IMEI/Serie ya está en uso por otro equipo (#{duplicate_imei.id}).', 'error')
+        return redirect(url_for('inventory'))
+    if imei_secondary:
+        duplicate_secondary = Inventory.query.filter(
+            Inventory.id != item.id,
+            db.or_(Inventory.imei == imei_secondary, Inventory.imei_secondary == imei_secondary)
+        ).first()
+        if duplicate_secondary:
+            flash(f'El IMEI 2 ya está en uso por otro equipo (#{duplicate_secondary.id}).', 'error')
+            return redirect(url_for('inventory'))
+
+    container = None
+    if container_id_raw:
+        try:
+            container = InventoryContainer.query.filter_by(id=int(container_id_raw), active=True).first()
+        except (TypeError, ValueError):
+            container = None
+
+    item.device_type = device_type
+    item.imei = imei
+    item.imei_secondary = imei_secondary
+    item.model = model
+    item.color = color
+    item.invoice_number = invoice_number
+    item.purchase_price = purchase_price
+    item.price = price
+    if container:
+        item.container_id = container.id
+
+    db.session.commit()
+    flash(f'Equipo #{item.id} actualizado correctamente.', 'success')
+    log_action('editar_inventario', resource_type='inventory', resource_id=item.id,
+               detail=f'{item.device_type} | IMEI: {item.imei} | {item.model} | Precio: {item.price}')
+    db.session.commit()
+    return redirect(url_for('inventory'))
+
+
+@app.route('/inventory/<int:item_id>/delete', methods=['POST'])
+@require_perm('eliminar_inventario')
+def delete_inventory_item(item_id):
+    if not session.get('user'):
+        return redirect(url_for('login'))
+
+    item = Inventory.query.get_or_404(item_id)
+    if item.status != 'disponible':
+        flash('Solo se pueden eliminar equipos disponibles (no vendidos).', 'error')
+        return redirect(url_for('inventory'))
+
+    item_label = f'#{item.id} — {item.model or item.imei}'
+    InventoryMovement.query.filter_by(inventory_id=item.id).delete()
+    db.session.delete(item)
+    db.session.commit()
+    flash(f'Equipo {item_label} eliminado del inventario.', 'success')
+    log_action('eliminar_inventario', resource_type='inventory', resource_id=item_id, detail=item_label)
+    db.session.commit()
+    return redirect(url_for('inventory'))
 
 
 @app.route('/inventory/reintegrate/<int:item_id>', methods=['POST'])
@@ -1398,6 +1678,10 @@ def process_return(sale_id):
     if not session.get('user'):
         return redirect(url_for('login'))
     sale = Sale.query.get_or_404(sale_id)
+    if sale.status == 'devuelto':
+        flash('Esta venta ya fue marcada como devuelta.', 'error')
+        return redirect(url_for('view_sale', sale_id=sale_id))
+
     # calcular total pagado
     total_paid = sum([float(p.amount) for p in sale.payments]) if sale.payments else 0.0
     reason = request.form.get('reason')
@@ -1418,6 +1702,17 @@ def process_return(sale_id):
                 username=session.get('user')
             ))
     db.session.add(ret)
+
+    if total_paid > 0:
+        credit_sale = Sale(
+            client_id=sale.client_id,
+            sale_price=0,
+            initial_amount=0,
+            balance=-total_paid,
+            status='saldo a favor'
+        )
+        db.session.add(credit_sale)
+
     db.session.commit()
     return redirect(url_for('view_sale', sale_id=sale_id))
 
@@ -1620,6 +1915,88 @@ def settings():
     
     payment_accounts_list = [line.strip() for line in (cfg.payment_accounts or '').splitlines() if line.strip()]
     return render_template('settings.html', config=cfg, payment_accounts_list=payment_accounts_list)
+
+
+@app.route('/settings/master-data', methods=['GET', 'POST'])
+@require_perm('cambios_maestros')
+def master_data_changes():
+    view_models = {
+        key: {
+            'label': config['label'],
+            'fields': {
+                field_name: {
+                    'label': field_config['label'],
+                    'type': field_config['type'],
+                    'choices': field_config.get('choices', []),
+                }
+                for field_name, field_config in config['fields'].items()
+            }
+        }
+        for key, config in MASTER_DATA_MODELS.items()
+    }
+
+    if request.method == 'POST':
+        table_key = (request.form.get('table') or '').strip()
+        record_id_raw = (request.form.get('record_id') or '').strip()
+        field_name = (request.form.get('field') or '').strip()
+        new_value_raw = request.form.get('new_value') or ''
+        reason = (request.form.get('reason') or '').strip()
+
+        if not reason:
+            flash('El motivo del cambio maestro es obligatorio.', 'error')
+            return redirect(url_for('master_data_changes'))
+        if table_key not in MASTER_DATA_MODELS:
+            flash('Tabla no permitida para cambios maestros.', 'error')
+            return redirect(url_for('master_data_changes'))
+        table_config = MASTER_DATA_MODELS[table_key]
+        if field_name not in table_config['fields']:
+            flash('Campo no permitido para cambios maestros.', 'error')
+            return redirect(url_for('master_data_changes'))
+
+        try:
+            record_id = int(record_id_raw)
+        except ValueError:
+            flash('Debes ingresar un ID numerico valido.', 'error')
+            return redirect(url_for('master_data_changes'))
+
+        record = db.session.get(table_config['model'], record_id)
+        if not record:
+            flash(f'No existe {table_config["label"]} con ID {record_id}.', 'error')
+            return redirect(url_for('master_data_changes'))
+
+        field_config = table_config['fields'][field_name]
+        try:
+            parsed_value = parse_master_value(new_value_raw, field_config)
+        except ValueError as exc:
+            flash(str(exc), 'error')
+            return redirect(url_for('master_data_changes'))
+
+        old_value = getattr(record, field_name)
+        setattr(record, field_name, parsed_value)
+
+        if table_key == 'sale' and field_name in ('sale_price', 'balance'):
+            update_paid_products(record, do_commit=False)
+
+        detail = (
+            f'{table_config["label"]} #{record_id} | Campo: {field_name} | '
+            f'Antes: {stringify_master_value(old_value)} | Despues: {stringify_master_value(parsed_value)} | '
+            f'Motivo: {reason}'
+        )
+        log_action('cambio_maestro', resource_type=table_key, resource_id=record_id, detail=detail)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash('No se pudo aplicar el cambio: existe una restriccion de base de datos que lo impide.', 'error')
+            return redirect(url_for('master_data_changes'))
+
+        flash('Cambio maestro aplicado y registrado en auditoria.', 'success')
+        return redirect(url_for('master_data_changes'))
+
+    recent_changes = AuditLog.query.filter_by(action='cambio_maestro').order_by(
+        AuditLog.timestamp.desc(), AuditLog.id.desc()
+    ).limit(20).all()
+    return render_template('master_data.html', master_models=view_models, recent_changes=recent_changes)
 
 
 # Exportar Excel

@@ -204,8 +204,8 @@
   {% if sale.status != 'devuelto' %}
   <div class="card" style="background:#fff5f5;border:1px solid #fed7d7">
     <h3 style="color:#c53030">Devolver producto</h3>
-    <p>Si el cliente devuelve el celular sin terminar de pagar, marca la venta como devuelta.</p>
-    <form method="post" action="{{ url_for('process_return', sale_id=sale.id) }}" onsubmit="return confirm('¿Marcar venta como devuelta y registrar reembolso de los pagos realizados?');">
+    <p>Si el cliente devuelve el celular sin terminar de pagar, marca la venta como devuelta. Los pagos realizados quedarán como saldo a favor del cliente.</p>
+    <form method="post" action="{{ url_for('process_return', sale_id=sale.id) }}" onsubmit="return confirm('¿Marcar venta como devuelta y dejar los pagos realizados como saldo a favor?');">
       <label>Motivo de devolución (opcional)<br><input name="reason" placeholder="E.j: Producto defectuoso, cambio de idea..."></label>
       <div style="margin-top:.5rem">
         <button class="btn btn-danger" type="submit">Marcar como devuelto</button>
@@ -220,7 +220,7 @@
     <p class="muted">Devoluciones registradas:</p>
     <ul style="margin:.5rem 0">
       {% for r in sale.returns %}
-      <li class="muted">{{ r.date.strftime('%d/%m/%Y') if r.date else 'N/A' }} — {{ r.reason or '(sin motivo)' }} — Reembolso: COP {{ '{:,.0f}'.format(r.refund_amount|int) }}</li>
+      <li class="muted">{{ r.date.strftime('%d/%m/%Y') if r.date else 'N/A' }} — {{ r.reason or '(sin motivo)' }} — Saldo a favor generado: COP {{ '{:,.0f}'.format(r.refund_amount|int) }}</li>
       {% endfor %}
     </ul>
     {% endif %}
