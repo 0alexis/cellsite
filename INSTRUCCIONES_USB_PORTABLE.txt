@@ -27,7 +27,7 @@ La carpeta CellSite_portable contiene:
 3. ESPERAR A QUE INICIE
    ➜ La primera vez tarda 5-10 segundos
    ➜ Se abrira automáticamente en tu navegador
-   ➜ Si no se abre, entra a: http://127.0.0.1:5001
+  ➜ Si no se abre, entra a: http://127.0.0.1:8765
 
 4. LOGIN
    ➜ Usuario: admin
@@ -150,7 +150,7 @@ SOLUCIONES:
 
 PROBLEMA: El navegador no se abre automáticamente
 SOLUCION:
-  1. Abre manualmente: http://127.0.0.1:5001
+  1. Abre manualmente: http://127.0.0.1:8765
   2. Si no carga, espera 10 segundos mas
   3. Asegurate que la ventana del cmd siga abierta (app en ejecucion)
 
@@ -201,8 +201,8 @@ Si quieres usar CellSite desde otro dispositivo en la red:
    - Busca "IPv4 Address" (ej: 192.168.1.100)
 
 2. En tu telefono/tablet ingresa:
-   - http://[IP_DE_TU_PC]:5001
-   - Ejemplo: http://192.168.1.100:5001
+  - http://[IP_DE_TU_PC]:8765
+  - Ejemplo: http://192.168.1.100:8765
 
 NOTA: Solo funciona si estan en la MISMA red wifi
 

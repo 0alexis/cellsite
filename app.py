@@ -28,6 +28,8 @@ DATA_DIR = os.path.join(BASE_DIR, 'data')
 DB_PATH = os.path.join(DATA_DIR, 'app.db')
 UPLOADS_DIR = os.path.join(BASE_DIR, 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+APP_HOST = os.environ.get('CELLSITE_HOST', '0.0.0.0')
+APP_PORT = int(os.environ.get('CELLSITE_PORT', '8765'))
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{DB_PATH}"
@@ -2634,7 +2636,7 @@ def generate_device_invoice_pdf(sale, product):
 
 
 def open_browser():
-    webbrowser.open('http://127.0.0.1:5001')
+    webbrowser.open(f'http://127.0.0.1:{APP_PORT}')
 
 
 def start_backup_thread(interval_seconds=1800):
@@ -2660,4 +2662,4 @@ if __name__ == '__main__':
     # abrir navegador tras 1s para que el servidor arranque
     threading.Timer(1.0, open_browser).start()
     start_backup_thread(1800)
-    app.run(host='127.0.0.1', port=5001)
+    app.run(host=APP_HOST, port=APP_PORT)

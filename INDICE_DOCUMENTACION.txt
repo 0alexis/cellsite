@@ -231,7 +231,7 @@ DESPUES DE LA COMPILACION:
   ☐ dist\CellSite_portable\CellSite.exe existe
   ☐ Tamaño ~80-100 MB
   ☐ start_app.bat funciona
-  ☐ Navegador se abre en http://127.0.0.1:5001
+  ☐ Navegador se abre en http://127.0.0.1:8765
   ☐ Login funciona (admin/admin)
 
 ANTES DE DISTRIBUIR:

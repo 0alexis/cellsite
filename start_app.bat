@@ -26,8 +26,9 @@ if not exist "CellSite.exe" (
 REM Crear carpeta data si no existe
 if not exist "data" mkdir data
 
-REM Establecer Puerto
-set PORT=5001
+REM Establecer puerto local de CellSite
+set PORT=8765
+set CELLSITE_PORT=%PORT%
 
 echo [*] Iniciando CellSite...
 echo [*] Puerto: http://127.0.0.1:%PORT%

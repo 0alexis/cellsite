@@ -74,8 +74,8 @@
     [ERROR]               [ABRIENDO]
         │                       │
         ├─ Verificar permisos   ├→ Esperar 5-10 seg
-        ├─ Ver puerto 5001      ├→ Se abre navegador
-        ├─ Revisar data/        └→ http://127.0.0.1:5001
+        ├─ Ver puerto 8765      ├→ Se abre navegador
+        ├─ Revisar data/        └→ http://127.0.0.1:8765
         └─ Ejecutar de nuevo        │
                                     ↓
                           ┌─────────────────────┐
@@ -163,7 +163,7 @@
     │
     ├─ Se abre navegador automáticamente
     │
-    ├─ Carga en http://127.0.0.1:5001
+    ├─ Carga en http://127.0.0.1:8765
     │
     └─ Usuario entra a sistema
        └─ Trabaja normalmente

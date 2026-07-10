@@ -17,7 +17,7 @@ if not exist ".venv\Scripts\activate.bat" (
 )
 
 echo.
-echo Servidor iniciado en: http://127.0.0.1:5001
+echo Servidor iniciado en: http://127.0.0.1:8765
 echo.
 echo Presiona Ctrl+C para detener el servidor
 echo.

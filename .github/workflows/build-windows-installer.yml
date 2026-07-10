@@ -91,6 +91,13 @@ jobs:
           path: installer_output/CellSite_Setup.exe
           if-no-files-found: error
 
+      - name: Subir aplicacion portable como artefacto del workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: CellSite-Portable-Windows-${{ steps.version.outputs.version }}
+          path: dist/CellSite/**
+          if-no-files-found: error
+
       - name: Publicar Release con el instalador
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
