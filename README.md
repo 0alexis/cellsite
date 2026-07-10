@@ -30,6 +30,38 @@ El ejecutable estará en: `dist/CellSite/CellSite`
 bash start.sh
 ```
 
+**Instalacion local continua:**
+```bash
+./install_local_service.sh
+```
+
+Esto instala un servicio de usuario en:
+```text
+~/.config/systemd/user/cellsite.service
+```
+
+El servicio arranca CellSite automaticamente al iniciar sesion y lo vuelve a levantar si se cierra por error. La app queda disponible en:
+```text
+http://127.0.0.1:8765
+```
+
+**Actualizar una instalacion local existente:**
+```bash
+systemctl --user stop cellsite.service
+bash build.sh
+./install_local_service.sh
+systemctl --user status cellsite.service
+```
+
+Si estas trabajando desde esta carpeta del proyecto, no es obligatorio reconstruir para tomar cambios de `app.py`, `templates/` o `static/`; puedes reiniciar el servicio:
+```bash
+systemctl --user restart cellsite.service
+```
+
+Si estas usando la carpeta empaquetada `dist/CellSite/`, si debes volver a correr `bash build.sh` y ejecutar `./install_local_service.sh` desde la carpeta actualizada.
+
+La reinstalacion del servicio no borra la base de datos. Tus datos siguen en `data/app.db` cuando ejecutas desde el proyecto, o en `dist/CellSite/data/app.db` cuando ejecutas desde el paquete compilado. Antes de reemplazar carpetas completas, respalda ese archivo.
+
 ## � USB Portable para Windows (NUEVO!)
 
 **Para crear un ejecutable completamente portable en USB:**
@@ -141,6 +173,9 @@ Puedes crear usuarios adicionales desde la aplicación (botón "Crear usuario" e
 **Linux:**
 - `build.sh` - Construye ejecutable para Linux
 - `start.sh` - Ejecuta en modo desarrollo
+- `run_cellsite.sh` - Lanza CellSite para uso con servicio local
+- `install_local_service.sh` - Instala inicio local continuo con systemd de usuario
+- `uninstall_local_service.sh` - Quita el servicio local continuo
 
 ## �📦 Distribución
 
