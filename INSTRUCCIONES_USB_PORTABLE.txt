@@ -9,6 +9,8 @@ La carpeta CellSite_portable contiene:
 
   📁 CellSite.exe               - Aplicacion ejecutable (autocontenida)
   📄 start_app.bat              - Script para iniciar la aplicacion
+  📄 install_autostart.bat      - Activa inicio automatico con Windows
+  📄 uninstall_autostart.bat    - Quita inicio automatico con Windows
   📁 data/                      - Carpeta con base de datos (app.db)
   📁 templates/                 - Plantillas HTML
   📁 static/                    - Archivos CSS e imagenes
@@ -33,6 +35,12 @@ La carpeta CellSite_portable contiene:
    ➜ Usuario: admin
    ➜ Contraseña: admin
    ➜ Puedes crear mas usuarios desde la app
+
+5. OPCIONAL: INICIO AUTOMATICO CON WINDOWS
+  ➜ En el equipo donde se usara CellSite, ejecuta una vez: install_autostart.bat
+  ➜ Desde ese momento CellSite se abrira solo al iniciar sesion en Windows
+  ➜ Si cambias la carpeta o cambia la letra del USB, ejecuta install_autostart.bat otra vez
+  ➜ Para quitarlo del inicio automatico, ejecuta: uninstall_autostart.bat
 
 
 ⚡ CARACTERÍSTICAS DEL USB PORTABLE
@@ -74,11 +82,14 @@ La carpeta CellSite_portable contiene:
 
 USB:/
 ├── start_app.bat          (ejecuta esto para iniciar)
+├── install_autostart.bat  (activa inicio automatico con Windows)
+├── uninstall_autostart.bat (quita inicio automatico)
 ├── CellSite.exe           (aplicacion principal)
 ├── README.md
 ├── requirements.txt
 ├── data/
 │   ├── app.db             (base de datos - TUS DATOS!)
+│   ├── uploads/           (logos subidos)
 │   └── app.db.backup*     (respaldos automáticos)
 ├── templates/             (HTML - no tocar)
 └── static/                (CSS, imagenes - no tocar)

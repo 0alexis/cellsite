@@ -30,6 +30,14 @@ REM Establecer puerto local de CellSite
 set PORT=8765
 set CELLSITE_PORT=%PORT%
 
+REM Si CellSite ya esta activo en este puerto, no iniciar otra copia
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:%PORT%/login' -TimeoutSec 2; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { exit 0 } else { exit 1 } } catch { exit 1 }" >nul 2>&1
+if not errorlevel 1 (
+    echo [*] CellSite ya esta en ejecucion.
+    start "" http://127.0.0.1:%PORT%
+    exit /b 0
+)
+
 echo [*] Iniciando CellSite...
 echo [*] Puerto: http://127.0.0.1:%PORT%
 echo.
@@ -43,7 +51,7 @@ timeout /t 5 /nobreak
 REM Iniciar el ejecutable con variables de entorno
 set FLASK_ENV=production
 set FLASK_APP=CellSite.exe
-start http://127.0.0.1:%PORT%
+start "" http://127.0.0.1:%PORT%
 
 REM Ejecutar la aplicacion
 "%SCRIPT_DIR%CellSite.exe"

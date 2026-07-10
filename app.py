@@ -1861,6 +1861,9 @@ def sales_dashboard():
 # Crear usuario
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    admin_exists = User.query.filter_by(role='admin', active=True).first() is not None
+    new_user_role = 'vendedor' if admin_exists else 'admin'
+
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
@@ -1868,27 +1871,27 @@ def register():
         
         if not username or len(username) < 3:
             flash('El usuario debe tener al menos 3 caracteres.', 'error')
-            return render_template('register.html')
+            return render_template('register.html', new_user_role=new_user_role, role_labels=ROLE_LABELS)
         
         if len(password) < 6:
             flash('La contraseña debe tener al menos 6 caracteres.', 'error')
-            return render_template('register.html')
+            return render_template('register.html', new_user_role=new_user_role, role_labels=ROLE_LABELS)
         
         if password != confirm_password:
             flash('Las contraseñas no coinciden.', 'error')
-            return render_template('register.html')
+            return render_template('register.html', new_user_role=new_user_role, role_labels=ROLE_LABELS)
         
         if User.query.filter_by(username=username).first():
             flash('El usuario ya existe.', 'error')
-            return render_template('register.html')
+            return render_template('register.html', new_user_role=new_user_role, role_labels=ROLE_LABELS)
         
-        user = User(username=username, password_hash=generate_password_hash(password))
+        user = User(username=username, password_hash=generate_password_hash(password), role=new_user_role, active=True)
         db.session.add(user)
         db.session.commit()
-        flash('Usuario creado. Puedes iniciar sesión ahora.', 'success')
+        flash(f'Usuario creado como {ROLE_LABELS.get(new_user_role, new_user_role)}. Puedes iniciar sesión ahora.', 'success')
         return redirect(url_for('login'))
     
-    return render_template('register.html')
+    return render_template('register.html', new_user_role=new_user_role, role_labels=ROLE_LABELS)
 
 
 # Configuración

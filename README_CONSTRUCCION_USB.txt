@@ -63,6 +63,8 @@ Despues de ejecutar build_portable.bat, encontraras:
 dist/CellSite_portable/
 ├── CellSite.exe                 ← EJECUTABLE PRINCIPAL (100% portátil!)
 ├── start_app.bat               ← Para iniciar facilmente
+├── install_autostart.bat       ← Activar inicio automatico con Windows
+├── uninstall_autostart.bat     ← Quitar inicio automatico con Windows
 ├── data/
 │   └── app.db                  ← Tu base de datos
 ├── templates/                  ← Incluidos en CellSite.exe
@@ -77,9 +79,11 @@ dist/CellSite_portable/
 
 2. Usuarios abren:   start_app.bat (desde el USB)
 
-3. La app inicia en ~5-10 segundos
+3. Opcional: ejecutan install_autostart.bat una vez para que inicie sola con Windows
 
-4. Se abre en navegador automaticamente
+4. La app inicia en ~5-10 segundos
+
+5. Se abre en navegador automaticamente
 
 
 ✅ CHECKLIST RAPIDO

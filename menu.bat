@@ -16,9 +16,11 @@ echo [3] Construir ejecutable portable para USB
 echo [4] Verificar ambiente de construccion
 echo [5] Abrir carpeta de datos
 echo [6] Abrir documentacion
-echo [7] Salir
+echo [7] Instalar inicio automatico con Windows
+echo [8] Quitar inicio automatico con Windows
+echo [9] Salir
 echo.
-set /p CHOICE="Elige una opcion (1-7): "
+set /p CHOICE="Elige una opcion (1-9): "
 
 if "%CHOICE%"=="1" goto START_APP
 if "%CHOICE%"=="2" goto START_DEV
@@ -26,7 +28,9 @@ if "%CHOICE%"=="3" goto BUILD_PORTABLE
 if "%CHOICE%"=="4" goto VERIFY_BUILD
 if "%CHOICE%"=="5" goto OPEN_DATA
 if "%CHOICE%"=="6" goto OPEN_DOCS
-if "%CHOICE%"=="7" exit /b 0
+if "%CHOICE%"=="7" goto INSTALL_AUTOSTART
+if "%CHOICE%"=="8" goto UNINSTALL_AUTOSTART
+if "%CHOICE%"=="9" exit /b 0
 
 echo.
 echo ERROR: Opcion no valida
@@ -133,5 +137,40 @@ if "%DOC%"=="1" (
     if exist "LEEME_PRIMERO.txt" start "" "LEEME_PRIMERO.txt"
 ) else if "%DOC%"=="5" (
     goto MENU
+)
+goto MENU
+
+REM ──────────────────────────────────────────────────────────────
+:INSTALL_AUTOSTART
+cls
+echo.
+echo Instalando inicio automatico...
+echo.
+if exist "install_autostart.bat" (
+    call install_autostart.bat
+) else if exist "dist\CellSite_portable\install_autostart.bat" (
+    cd /d dist\CellSite_portable
+    call install_autostart.bat
+) else (
+    echo ERROR: install_autostart.bat no encontrado
+    echo Primero ejecuta la opcion [3] para compilar
+    pause
+)
+goto MENU
+
+REM ──────────────────────────────────────────────────────────────
+:UNINSTALL_AUTOSTART
+cls
+echo.
+echo Quitando inicio automatico...
+echo.
+if exist "uninstall_autostart.bat" (
+    call uninstall_autostart.bat
+) else if exist "dist\CellSite_portable\uninstall_autostart.bat" (
+    cd /d dist\CellSite_portable
+    call uninstall_autostart.bat
+) else (
+    echo ERROR: uninstall_autostart.bat no encontrado
+    pause
 )
 goto MENU

@@ -89,6 +89,8 @@ if not exist "dist\CellSite_portable\data" mkdir dist\CellSite_portable\data
 REM Copiar archivos de configuracion y documentacion
 copy /Y app.py dist\CellSite_portable\ >nul 2>&1
 copy /Y start_app.bat dist\CellSite_portable\ >nul 2>&1
+copy /Y install_autostart.bat dist\CellSite_portable\ >nul 2>&1
+copy /Y uninstall_autostart.bat dist\CellSite_portable\ >nul 2>&1
 copy /Y README.md dist\CellSite_portable\ >nul 2>&1
 copy /Y requirements.txt dist\CellSite_portable\ >nul 2>&1
 copy /Y INSTRUCCIONES_USB_PORTABLE.txt dist\CellSite_portable\ >nul 2>&1
@@ -115,6 +117,7 @@ echo Para usar en USB:
 echo   1. Copia la carpeta dist\CellSite_portable\ a tu USB
 echo   2. Abre start_app.bat desde la carpeta del USB
 echo   3. La aplicacion se abrira en tu navegador
+echo   4. Para que inicie sola con Windows, abre install_autostart.bat una vez
 echo.
 echo NOTA: La primera vez que inicies, la app creara
 echo los datos iniciales. Esto es normal.

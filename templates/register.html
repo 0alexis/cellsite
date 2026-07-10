@@ -34,6 +34,10 @@
         <label style="margin-top:.75rem">Confirmar contraseña <br>
           <input type="password" name="confirm_password" required minlength="6">
         </label>
+
+        <label style="margin-top:.75rem">Rol que se creará<br>
+          <input type="text" value="{{ role_labels.get(new_user_role, new_user_role) }}" readonly>
+        </label>
         
         <div style="margin-top:1.2rem">
           <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center">Crear usuario</button>
