@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, g, has_request_context
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, send_from_directory, g, has_request_context
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
@@ -15,6 +15,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 import io
 import os
+import sys
 import threading
 import time
 import shutil
@@ -22,16 +23,20 @@ import webbrowser
 import base64
 from xml.sax.saxutils import escape
 
-# Ruta base absoluta del proyecto (evita problemas con cwd relativo)
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+# Rutas base: PyInstaller --onefile extrae recursos a una carpeta temporal,
+# pero los datos editables deben vivir junto al ejecutable para ser portables.
+BASE_DIR = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.abspath(os.path.dirname(__file__))
+RESOURCE_DIR = getattr(sys, '_MEIPASS', BASE_DIR)
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 DB_PATH = os.path.join(DATA_DIR, 'app.db')
-UPLOADS_DIR = os.path.join(BASE_DIR, 'static', 'uploads')
+TEMPLATES_DIR = os.path.join(RESOURCE_DIR, 'templates')
+STATIC_DIR = os.path.join(RESOURCE_DIR, 'static')
+UPLOADS_DIR = os.path.join(DATA_DIR, 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 APP_HOST = os.environ.get('CELLSITE_HOST', '0.0.0.0')
 APP_PORT = int(os.environ.get('CELLSITE_PORT', '8765'))
 
-app = Flask(__name__, template_folder='templates', static_folder='static')
+app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder=STATIC_DIR)
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{DB_PATH}"
 app.config['UPLOAD_FOLDER'] = UPLOADS_DIR
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -85,6 +90,16 @@ def get_current_config():
     return Config.query.first()
 
 
+def logo_src(logo_path):
+    if not logo_path:
+        return ''
+    if logo_path.startswith(('http://', 'https://', '/')):
+        return logo_path
+    if logo_path.startswith('uploads/'):
+        return url_for('uploaded_file', filename=logo_path.split('/', 1)[1])
+    return logo_path
+
+
 @app.context_processor
 def inject_branding():
     current_user = get_current_user()
@@ -95,6 +110,7 @@ def inject_branding():
         'user_perms': current_perms,
         'user_role': current_user.role if current_user else None,
         'role_labels': ROLE_LABELS,
+        'logo_src': logo_src,
     }
 
 
@@ -584,7 +600,8 @@ def ensure_schema_compatibility():
 
 
 def init_db():
-    os.makedirs('data', exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
     # Usar el contexto de la aplicación para operaciones de base de datos
     with app.app_context():
         db.create_all()
@@ -1917,6 +1934,11 @@ def settings():
     
     payment_accounts_list = [line.strip() for line in (cfg.payment_accounts or '').splitlines() if line.strip()]
     return render_template('settings.html', config=cfg, payment_accounts_list=payment_accounts_list)
+
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(UPLOADS_DIR, filename)
 
 
 @app.route('/settings/master-data', methods=['GET', 'POST'])

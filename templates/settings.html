@@ -95,7 +95,7 @@
     {% if config.logo_path %}
       <div style="margin-top:1rem;padding:1rem;border:1px solid #e5e7eb;border-radius:.375rem">
         <p style="margin:0 0 .5rem 0;font-weight:600">Logo actual:</p>
-        <img src="{{ config.logo_path }}" alt="Logo" style="max-width:200px;max-height:150px">
+        <img src="{{ logo_src(config.logo_path) }}" alt="Logo" style="max-width:200px;max-height:150px">
       </div>
     {% endif %}
     
