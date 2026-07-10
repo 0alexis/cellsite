@@ -79,7 +79,7 @@ dist/CellSite_portable/
 
 2. Usuarios abren:   start_app.bat (desde el USB)
 
-3. Opcional: ejecutan install_autostart.bat una vez para que inicie sola con Windows
+3. Al primer inicio, CellSite queda registrado para iniciar solo con Windows
 
 4. La app inicia en ~5-10 segundos
 

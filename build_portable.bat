@@ -117,7 +117,8 @@ echo Para usar en USB:
 echo   1. Copia la carpeta dist\CellSite_portable\ a tu USB
 echo   2. Abre start_app.bat desde la carpeta del USB
 echo   3. La aplicacion se abrira en tu navegador
-echo   4. Para que inicie sola con Windows, abre install_autostart.bat una vez
+echo   4. Al abrirse una vez, CellSite queda registrado para iniciar con Windows
+echo      Si quieres forzarlo manualmente, abre install_autostart.bat una vez
 echo.
 echo NOTA: La primera vez que inicies, la app creara
 echo los datos iniciales. Esto es normal.

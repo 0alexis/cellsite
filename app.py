@@ -16,6 +16,7 @@ from reportlab.lib import colors
 import io
 import os
 import sys
+import socket
 import threading
 import time
 import shutil
@@ -2664,6 +2665,33 @@ def open_browser():
     webbrowser.open(f'http://127.0.0.1:{APP_PORT}')
 
 
+def register_windows_autostart():
+    if os.name != 'nt' or not getattr(sys, 'frozen', False):
+        return
+    if os.environ.get('CELLSITE_DISABLE_AUTOSTART') == '1':
+        return
+    try:
+        import winreg
+        command = f'"{sys.executable}"'
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r'Software\Microsoft\Windows\CurrentVersion\Run',
+            0,
+            winreg.KEY_SET_VALUE,
+        ) as key:
+            winreg.SetValueEx(key, 'CellSite', 0, winreg.REG_SZ, command)
+    except Exception:
+        pass
+
+
+def is_server_running():
+    try:
+        with socket.create_connection(('127.0.0.1', APP_PORT), timeout=1):
+            return True
+    except OSError:
+        return False
+
+
 def start_backup_thread(interval_seconds=1800):
     def backup_loop():
         backup_path = os.path.join(DATA_DIR, 'app.db.backup')
@@ -2683,6 +2711,10 @@ def start_backup_thread(interval_seconds=1800):
 
 
 if __name__ == '__main__':
+    register_windows_autostart()
+    if is_server_running():
+        open_browser()
+        sys.exit(0)
     init_db()
     # abrir navegador tras 1s para que el servidor arranque
     threading.Timer(1.0, open_browser).start()

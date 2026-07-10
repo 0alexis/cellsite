@@ -25,6 +25,7 @@ La carpeta CellSite_portable contiene:
 2. INICIAR LA APLICACION
    ➜ Abre el USB en Windows
    ➜ Haz doble-clic en: start_app.bat
+  ➜ Al abrirse una vez, CellSite queda registrado para iniciar solo con Windows
    
 3. ESPERAR A QUE INICIE
    ➜ La primera vez tarda 5-10 segundos
@@ -36,9 +37,9 @@ La carpeta CellSite_portable contiene:
    ➜ Contraseña: admin
    ➜ Puedes crear mas usuarios desde la app
 
-5. OPCIONAL: INICIO AUTOMATICO CON WINDOWS
-  ➜ En el equipo donde se usara CellSite, ejecuta una vez: install_autostart.bat
-  ➜ Desde ese momento CellSite se abrira solo al iniciar sesion en Windows
+5. INICIO AUTOMATICO CON WINDOWS
+  ➜ CellSite se registra solo la primera vez que se ejecuta el .exe portable
+  ➜ Desde ese momento se abrira solo al iniciar sesion en Windows
   ➜ Si cambias la carpeta o cambia la letra del USB, ejecuta install_autostart.bat otra vez
   ➜ Para quitarlo del inicio automatico, ejecuta: uninstall_autostart.bat
 
